@@ -42,9 +42,16 @@ function UserSubscriptionsPage() {
   ];
 
   const getData = async () => {
+    // Add user validation before making the API call
+    if (!user?.id) {
+      console.log("User not loaded yet, skipping API call");
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const response: any = await getAllSubscriptionsOfUser(user?.id!);
+      const response: any = await getAllSubscriptionsOfUser(user.id);
       if (!response.success) {
         throw new Error(response.message);
       }
@@ -58,7 +65,7 @@ function UserSubscriptionsPage() {
 
   useEffect(() => {
     getData();
-  }, []);
+  }, [user?.id]); // Add user.id as dependency
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -101,6 +108,38 @@ function UserSubscriptionsPage() {
       }
     });
   }, [subscriptions, sortField, sortDirection]);
+
+  // Show loading state while user is being loaded
+  if (!user?.id && loading) {
+    return (
+      <div className="relative">
+        <PageTitle title="My Subscriptions" />
+        <div className="mt-8">
+          <Spinner parentHeight="300px" />
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if user is not found after loading
+  if (!user?.id && !loading) {
+    return (
+      <div className="relative">
+        <PageTitle title="My Subscriptions" />
+        <div className="mt-8 p-8 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 text-center">
+          <p className="text-gray-500 dark:text-gray-400">
+            Unable to load user information. Please try refreshing the page.
+          </p>
+          <Button 
+            className="mt-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+            onClick={() => window.location.reload()}
+          >
+            Refresh Page
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative">

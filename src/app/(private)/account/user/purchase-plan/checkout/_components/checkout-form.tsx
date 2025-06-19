@@ -25,14 +25,14 @@ function CheckoutForm({
   const [isProcessing, setIsProcessing] = React.useState(false);
   const stripe = useStripe();
   const elements = useElements();
-  
+
   const handleSubmit = async (event: React.FormEvent) => {
     try {
       // We don't want to let default form submission happen here,
       // which would refresh the page.
       event.preventDefault();
       setIsProcessing(true);
-      
+
       console.log("Starting payment confirmation...");
 
       if (!stripe || !elements) {
@@ -56,13 +56,13 @@ function CheckoutForm({
       if (result.error) {
         console.error("Payment error details:", result.error);
         let errorMessage = "An error occurred while processing the payment.";
-        
+
         if (result.error.type === "card_error") {
           errorMessage = result.error.message || "Your card was declined.";
         } else if (result.error.type === "validation_error") {
           errorMessage = "The payment information is invalid.";
         }
-        
+
         toast.error(errorMessage);
       } else {
         // Your customer will be redirected to your `return_url`. For some payment
@@ -79,7 +79,7 @@ function CheckoutForm({
       setIsProcessing(false);
     }
   };
-  
+
   return (
     <Dialog open={showCheckoutForm} onOpenChange={setShowCheckoutForm}>
       <DialogContent className="max-h-[85vh] p-0 overflow-hidden rounded-xl">
