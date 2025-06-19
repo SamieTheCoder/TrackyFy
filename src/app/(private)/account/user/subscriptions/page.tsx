@@ -10,7 +10,7 @@ import toast from "react-hot-toast";
 import dayjs from "dayjs";
 import Spinner from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowUpDown, ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowLeft, ArrowUpDown, ArrowDown, ArrowUp, Banknote, CreditCard } from "lucide-react";
 import Link from "next/link";
 
 type SortField =
@@ -207,6 +207,40 @@ function UserSubscriptionsPage() {
                       ₹{subscription.amount}
                     </span>
                   </div>
+                  
+                  {/* Payment Method Section */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      Payment Method
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {subscription.payment_id?.startsWith('CASH_') ? (
+                        <>
+                          <Banknote className="h-4 w-4 text-green-500" />
+                          <span className="font-medium text-green-600 dark:text-green-400">
+                            Cash Payment
+                          </span>
+                          {subscription.is_cash_approval ? (
+                            <span className="px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                              Approved
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400">
+                              Pending
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="h-4 w-4 text-blue-500" />
+                          <span className="font-medium text-blue-600 dark:text-blue-400">
+                            Card Payment
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-500 dark:text-gray-400">
                       Payment ID

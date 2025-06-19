@@ -78,6 +78,12 @@ function MenuItems({ user, openMenuItems, setOpenMenuItems }: IMenuItemsProps) {
       icon: <List size={iconSize} />,
       route: "/account/admin/customers",
     },
+    {
+      name: "Cash Approval",
+      icon: <List size={iconSize} />,
+      route: "/account/admin/cashapproval",
+
+    },
     // {
     //   name: "Referrals",
     //   icon: <UserPlus size={iconSize} />,

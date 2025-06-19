@@ -8,7 +8,7 @@ import {
 } from "@/global-store/plans-store";
 import dayjs from "dayjs";
 import React, { useMemo, useState } from "react";
-import { ArrowRight, Calendar, CreditCard, Package, Tag, Lock, Shield } from "lucide-react";
+import { ArrowRight, Calendar, CreditCard, Package, Tag, Lock, Shield, Banknote } from "lucide-react";
 import { getStripePaymentIntent } from "@/actions/payments";
 import toast from "react-hot-toast";
 
@@ -19,6 +19,7 @@ import CheckoutForm from "./_components/checkout-form";
 import userGlobalStore, { IUsersGlobalStore } from "@/global-store/users-store";
 import { createNewSubscription } from "@/actions/subscriptions";
 import { useRouter } from "next/navigation";
+import CashPaymentForm from "@/components/cash-payment-form";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
@@ -34,6 +35,7 @@ function CheckoutPage() {
   //stripe ui
   const [clientSecret, setClientSecret] = React.useState<string | null>(null);
   const [showCheckoutForm, setShowCheckoutForm] = useState(false);
+  const [showCashForm, setShowCashForm] = useState(false);
 
   const endDate = useMemo(() => {
     return dayjs(startDate)
@@ -66,6 +68,10 @@ function CheckoutPage() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleCashPayment = () => {
+    setShowCashForm(true);
   };
 
   const options = {
@@ -130,43 +136,39 @@ function CheckoutPage() {
   }
 
   // Determine color scheme based on plan name
-// Color scheme function
-// Color scheme function with orange-pink gradients
-const getPlanColorScheme = () => {
-  const name = selectedPaymentPlan.mainPlan?.name.toLowerCase() || '';
-  
-  if (name.includes('basic')) {
-    return {
-      gradient: "from-[#FF6B6B] to-[#FF8E8E]",
-      bg: "bg-[#FFF0F0]",
-      border: "border-[#FF6B6B]",
-      text: "text-[#FF6B6B]"
-    };
-  } else if (name.includes('standard')) {
-    return {
-      gradient: "from-[#FF8008] to-[#FFA794]",
-      bg: "bg-[#FFF6F0]",
-      border: "border-[#FF8008]",
-      text: "text-[#FF8008]"
-    };
-  } else if (name.includes('premium')) {
-    return {
-      gradient: "from-[#FF512F] to-[#DD2476]",
-      bg: "bg-[#FFF0F6]",
-      border: "border-[#DD2476]",
-      text: "text-[#DD2476]"
-    };
-  } else {
-    return {
-      gradient: "from-[#FF9966] to-[#FF5E62]",
-      bg: "bg-[#FFF0F0]",
-      border: "border-[#FF5E62]",
-      text: "text-[#FF5E62]"
-    };
-  }
-};
-
-
+  const getPlanColorScheme = () => {
+    const name = selectedPaymentPlan.mainPlan?.name.toLowerCase() || '';
+    
+    if (name.includes('basic')) {
+      return {
+        gradient: "from-[#FF6B6B] to-[#FF8E8E]",
+        bg: "bg-[#FFF0F0]",
+        border: "border-[#FF6B6B]",
+        text: "text-[#FF6B6B]"
+      };
+    } else if (name.includes('standard')) {
+      return {
+        gradient: "from-[#FF8008] to-[#FFA794]",
+        bg: "bg-[#FFF6F0]",
+        border: "border-[#FF8008]",
+        text: "text-[#FF8008]"
+      };
+    } else if (name.includes('premium')) {
+      return {
+        gradient: "from-[#FF512F] to-[#DD2476]",
+        bg: "bg-[#FFF0F6]",
+        border: "border-[#DD2476]",
+        text: "text-[#DD2476]"
+      };
+    } else {
+      return {
+        gradient: "from-[#FF9966] to-[#FF5E62]",
+        bg: "bg-[#FFF0F0]",
+        border: "border-[#FF5E62]",
+        text: "text-[#FF5E62]"
+      };
+    }
+  };
 
   const colorScheme = getPlanColorScheme();
 
@@ -222,7 +224,7 @@ const getPlanColorScheme = () => {
                 </span>
               </div>
 
-              <div className="flex items-center justify-between py-3">
+              <div className="flex items-center justify-between py-3 border-b border-gray-100">
                 <div className="flex items-center text-gray-700">
                   <Calendar className="h-4 w-4 mr-2" />
                   <span>Start Date</span>
@@ -251,20 +253,36 @@ const getPlanColorScheme = () => {
                   ₹{selectedPaymentPlan.paymentPlan?.price}
                 </span>
               </div>
-              <Button
-                className={`w-full h-11 text-base font-medium mt-4 bg-gradient-to-r ${colorScheme.gradient} hover:opacity-90 text-white`}
-                onClick={paymentIntentHandler}
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <>
-                    <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Processing...
-                  </>
-                ) : (
-                  <>Pay Now</>
-                )}
-              </Button>
+
+              {/* Payment Method Buttons */}
+              <div className="space-y-3">
+                <Button
+                  className={`w-full h-11 text-base font-medium bg-gradient-to-r ${colorScheme.gradient} hover:opacity-90 text-white`}
+                  onClick={paymentIntentHandler}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Pay with Card
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className={`w-full h-11 text-base font-medium border-2 ${colorScheme.border} ${colorScheme.text} hover:${colorScheme.bg}`}
+                  onClick={handleCashPayment}
+                >
+                  <Banknote className="h-4 w-4 mr-2" />
+                  Request Cash Payment
+                </Button>
+              </div>
 
               {showCheckoutForm && clientSecret && (
                 <Elements stripe={stripePromise} options={options}>
@@ -275,6 +293,16 @@ const getPlanColorScheme = () => {
                   />
                 </Elements>
               )}
+
+              {/* Cash Payment Form */}
+              <CashPaymentForm
+                showCashForm={showCashForm}
+                setShowCashForm={setShowCashForm}
+                selectedPaymentPlan={selectedPaymentPlan}
+                user={user}
+                startDate={startDate}
+                endDate={endDate}
+              />
               
               <div className="mt-4 flex items-center justify-center">
                 <div className="flex items-center space-x-2">
@@ -308,7 +336,7 @@ const getPlanColorScheme = () => {
               <h3 className="font-medium text-gray-900">Payment Methods</h3>
             </div>
             <p className="text-sm text-gray-600">
-              We accept all major credit cards, debit cards, and select digital payment methods.
+              We accept all major credit cards, debit cards, and cash payments with admin approval.
             </p>
           </div>
         </div>
