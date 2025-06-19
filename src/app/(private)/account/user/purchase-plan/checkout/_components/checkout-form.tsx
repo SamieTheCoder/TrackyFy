@@ -101,7 +101,11 @@ function CheckoutForm({
               <PaymentElement className="mb-4" />
             </div>
 
-            <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-100 mt-4">
+            {/* for address details in stripe payment gateway */}
+            {/* for address details in stripe payment gateway */}
+            {/* for address details in stripe payment gateway */}
+            {/* for address details in stripe payment gateway */}
+            {/* <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-100 mt-4">
               <h3 className="text-sm font-medium text-gray-700 mb-3">
                 Billing Address
               </h3>
@@ -111,7 +115,7 @@ function CheckoutForm({
                   mode: "billing",
                 }}
               />
-            </div>
+            </div> */}
 
             <div className="sticky bottom-0 pt-4 flex justify-end gap-3 mt-8">
               <Button
