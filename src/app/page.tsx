@@ -599,33 +599,97 @@ function Homepage() {
 
       {/* Footer */}
       <footer className="relative z-10 py-8 sm:py-12 px-4 sm:px-6 md:px-10 border-t border-gray-800/50 bg-gray-950/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center mb-4 sm:mb-6 md:mb-0 group">
-              <Logo className="w-8 h-8 sm:w-10 sm:h-10 mr-2 sm:mr-3" />
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold group-hover:text-orange-400 transition-colors duration-300">
-                <b className="text-white">Tracky</b>
-                <b className="text-orange-600">.Fy</b>
-              </h3>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-              <p className="text-gray-400 text-center text-sm sm:text-base">
-                © {new Date().getFullYear()} Tracky.Fy. All rights reserved.
-              </p>
-              <div className="flex items-center gap-4">
-                <Badge
-                  variant="secondary"
-                  className="bg-green-500/20 text-green-400 border-green-500/30 text-xs sm:text-sm"
-                >
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-1 sm:mr-2 animate-pulse" />
-                  All Systems Operational
-                </Badge>
-              </div>
-            </div>
-          </div>
+  <div className="max-w-7xl mx-auto">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+      {/* Company Info */}
+      <div className="space-y-4">
+        <div className="flex items-center group">
+          <Logo className="w-8 h-8 sm:w-10 sm:h-10 mr-2 sm:mr-3" />
+          <h3 className="text-xl sm:text-2xl font-bold group-hover:text-orange-400 transition-colors duration-300">
+            <b className="text-white">Tracky</b>
+            <b className="text-orange-600">.Fy</b>
+          </h3>
         </div>
-      </footer>
+        <p className="text-gray-400 text-sm">
+          The ultimate gym management platform for fitness businesses.
+        </p>
+      </div>
+
+      {/* Legal Pages */}
+      <div>
+        <h4 className="text-white font-semibold mb-4">Legal</h4>
+        <ul className="space-y-2">
+          <li>
+            <a href="/terms" className="text-gray-400 hover:text-orange-400 transition-colors text-sm">
+              Terms & Conditions
+            </a>
+          </li>
+          <li>
+            <a href="/privacy" className="text-gray-400 hover:text-orange-400 transition-colors text-sm">
+              Privacy Policy
+            </a>
+          </li>
+          <li>
+            <a href="/refund" className="text-gray-400 hover:text-orange-400 transition-colors text-sm">
+              Return & Refund Policy
+            </a>
+          </li>
+          <li>
+            <a href="/cancellation" className="text-gray-400 hover:text-orange-400 transition-colors text-sm">
+              Cancellation Policy
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      {/* Support */}
+      <div>
+        <h4 className="text-white font-semibold mb-4">Support</h4>
+        <ul className="space-y-2">
+          <li>
+            <a href="/contact" className="text-gray-400 hover:text-orange-400 transition-colors text-sm">
+              Contact Us
+            </a>
+          </li>
+          <li>
+            <a href="/about" className="text-gray-400 hover:text-orange-400 transition-colors text-sm">
+              About Us
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      {/* Contact Info */}
+      <div>
+        <h4 className="text-white font-semibold mb-4">Contact</h4>
+        <div className="space-y-2 text-sm text-gray-400">
+          <p>MD SAMIE SOHRAB</p>
+          <p>Arbiya College Road</p>
+          <p>Purnea, Bihar 854301</p>
+          <p>India</p>
+          <p>+91-99051-77065</p>
+        </div>
+      </div>
+    </div>
+
+    <div className="border-t border-gray-800 pt-6">
+      <div className="flex flex-col md:flex-row justify-between items-center">
+        <p className="text-gray-400 text-center text-sm sm:text-base mb-4 md:mb-0">
+          © {new Date().getFullYear()} TrackyFy. All rights reserved. Operated by MD SAMIE SOHRAB
+        </p>
+        <div className="flex items-center gap-4">
+          <Badge
+            variant="secondary"
+            className="bg-green-500/20 text-green-400 border-green-500/30 text-xs sm:text-sm"
+          >
+            <div className="w-2 h-2 bg-green-500 rounded-full mr-1 sm:mr-2 animate-pulse" />
+            All Systems Operational
+          </Badge>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
 
       {/* Enhanced Auth Sheet */}
       <Sheet open={openSheet} onOpenChange={setOpenSheet}>
