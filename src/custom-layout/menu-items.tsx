@@ -16,6 +16,8 @@ import {
   LogOut,
   User2,
   UserPlus,
+  Settings,
+  CreditCard,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import React from "react";
@@ -49,11 +51,6 @@ function MenuItems({ user, openMenuItems, setOpenMenuItems }: IMenuItemsProps) {
       icon: <FolderKanban size={iconSize} />,
       route: "/account/user/purchase-plan",
     },
-    // {
-    //   name: "Referrals",
-    //   icon: <UserPlus size={iconSize} />,
-    //   route: "/account/user/referrals",
-    // },
   ];
 
   const adminMenuItems = [
@@ -82,13 +79,12 @@ function MenuItems({ user, openMenuItems, setOpenMenuItems }: IMenuItemsProps) {
       name: "Cash Approval",
       icon: <List size={iconSize} />,
       route: "/account/admin/cashapproval",
-
     },
-    // {
-    //   name: "Referrals",
-    //   icon: <UserPlus size={iconSize} />,
-    //   route: "/account/admin/referrals",
-    // },
+    {
+      name: "Payment Settings",
+      icon: <CreditCard size={iconSize} />,
+      route: "/account/admin/payment-settings",
+    },
   ];
 
   const menuItemsToRender = user.is_admin ? adminMenuItems : userMenuItems;

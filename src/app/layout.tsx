@@ -5,6 +5,7 @@ import CustomLayout from "@/custom-layout";
 import { Toaster } from "react-hot-toast";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: "TrackyFy",
@@ -34,6 +35,10 @@ export default function RootLayout({
           <SpeedInsights />
           <Analytics />
           <Toaster position="top-center" reverseOrder={false} />
+          <Script
+            src="https://checkout.razorpay.com/v1/checkout.js"
+            strategy="lazyOnload"
+          />
         </body>
       </html>
     </ClerkProvider>

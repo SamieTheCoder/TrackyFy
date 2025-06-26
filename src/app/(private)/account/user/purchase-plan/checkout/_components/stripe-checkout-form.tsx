@@ -13,23 +13,17 @@ import { useStripe, useElements } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
-interface ICheckoutFormProps {
+interface IStripeCheckoutFormProps {
   showCheckoutForm: boolean;
   setShowCheckoutForm: (value: boolean) => void;
   onPaymentSuccess: (paymentId: string) => void;
-  // Make orderData optional since Stripe doesn't need it
-  orderData?: {
-    order_id: string;
-    amount: number;
-    currency: string;
-  } | null;
 }
 
-function CheckoutFormContent({
+function StripeCheckoutForm({
   showCheckoutForm,
   setShowCheckoutForm,
   onPaymentSuccess,
-}: ICheckoutFormProps) {
+}: IStripeCheckoutFormProps) {
   const [isProcessing, setIsProcessing] = React.useState(false);
   const stripe = useStripe();
   const elements = useElements();
@@ -40,7 +34,6 @@ function CheckoutFormContent({
       setIsProcessing(true);
 
       if (!stripe || !elements) {
-        console.log("Stripe or elements not loaded yet");
         return;
       }
 
@@ -53,7 +46,6 @@ function CheckoutFormContent({
       });
 
       if (result.error) {
-        console.error("Payment error details:", result.error);
         let errorMessage = "An error occurred while processing the payment.";
 
         if (result.error.type === "card_error") {
@@ -79,12 +71,12 @@ function CheckoutFormContent({
   return (
     <Dialog open={showCheckoutForm} onOpenChange={setShowCheckoutForm}>
       <DialogContent className="max-h-[85vh] p-0 overflow-hidden rounded-xl">
-        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-white">
+        <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-6 text-white">
           <DialogTitle className="text-2xl font-bold">
-            Complete Payment
+            Complete Payment with Stripe
           </DialogTitle>
           <DialogDescription className="text-white/80 mt-1">
-            Secure payment to activate your subscription
+            Secure payment processing with Stripe
           </DialogDescription>
         </div>
 
@@ -109,7 +101,7 @@ function CheckoutFormContent({
               </Button>
               <Button
                 type="submit"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-5"
+                className="bg-purple-600 hover:bg-purple-700 text-white px-5"
                 disabled={isProcessing}
               >
                 {isProcessing ? (
@@ -129,14 +121,4 @@ function CheckoutFormContent({
   );
 }
 
-// Wrapper component that conditionally renders with Elements
-function CheckoutForm(props: ICheckoutFormProps) {
-  // Only render the form content when the dialog is open
-  if (!props.showCheckoutForm) {
-    return null;
-  }
-
-  return <CheckoutFormContent {...props} />;
-}
-
-export default CheckoutForm;
+export default StripeCheckoutForm;
