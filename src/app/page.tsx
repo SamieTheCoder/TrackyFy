@@ -598,7 +598,8 @@ function Homepage() {
       </div>
 
       {/* Footer */}
-      <footer className="relative z-10 py-8 sm:py-12 px-4 sm:px-6 md:px-10 border-t border-gray-800/50 bg-gray-950/50 backdrop-blur-sm">
+      {/* Footer - Updated with Shipping Policy */}
+<footer className="relative z-10 py-8 sm:py-12 px-4 sm:px-6 md:px-10 border-t border-gray-800/50 bg-gray-950/50 backdrop-blur-sm">
   <div className="max-w-7xl mx-auto">
     <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
       {/* Company Info */}
@@ -649,6 +650,11 @@ function Homepage() {
           <li>
             <a href="/contact" className="text-gray-400 hover:text-orange-400 transition-colors text-sm">
               Contact Us
+            </a>
+          </li>
+          <li>
+            <a href="/shipping" className="text-gray-400 hover:text-orange-400 transition-colors text-sm">
+              Shipping & Delivery
             </a>
           </li>
           <li>
