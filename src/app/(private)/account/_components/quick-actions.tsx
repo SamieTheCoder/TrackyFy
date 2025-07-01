@@ -3,12 +3,12 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { 
-  CreditCard, 
-  FileText, 
   Settings, 
   HelpCircle, 
   Download,
-  RefreshCw
+  RefreshCw,
+  FolderKanban,
+  CalendarSync
 } from 'lucide-react';
 
 interface QuickActionsProps {
@@ -23,14 +23,14 @@ interface QuickActionsProps {
 const QuickActions: React.FC<QuickActionsProps> = ({ subscriptionProgress, onDownloadInvoice }) => {
   const actions = [
     {
-      icon: CreditCard,
+      icon: FolderKanban,
       label: 'View Plans',
       href: '/account/user/purchase-plan',
       color: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
       description: 'Browse subscription plans'
     },
     {
-      icon: FileText,
+      icon: CalendarSync,
       label: 'All Subscriptions',
       href: '/account/user/subscriptions',
       color: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
@@ -129,3 +129,4 @@ const QuickActions: React.FC<QuickActionsProps> = ({ subscriptionProgress, onDow
 };
 
 export default QuickActions;
+  

@@ -76,3 +76,100 @@ export const getMonthlyRevenueReport = async () => {
     };
   }
 };
+
+// New functions for subscription expiry tracking
+export const getExpiringSubscriptions = async () => {
+  try {
+    const { data, error } = await supabase.rpc("get_expiring_subscriptions");
+
+    if (error) {
+      console.error("Expiring subscriptions error:", error);
+      return {
+        success: false,
+        message: error.message,
+        data: [],
+      };
+    }
+
+    return {
+      success: true,
+      data: data || [],
+    };
+  } catch (error: any) {
+    console.error("Expiring subscriptions exception:", error);
+    return {
+      success: false,
+      message: error.message,
+      data: [],
+    };
+  }
+};
+
+export const getExpiredSubscriptions = async () => {
+  try {
+    const { data, error } = await supabase.rpc("get_expired_subscriptions");
+
+    if (error) {
+      console.error("Expired subscriptions error:", error);
+      return {
+        success: false,
+        message: error.message,
+        data: [],
+      };
+    }
+
+    return {
+      success: true,
+      data: data || [],
+    };
+  } catch (error: any) {
+    console.error("Expired subscriptions exception:", error);
+    return {
+      success: false,
+      message: error.message,
+      data: [],
+    };
+  }
+};
+
+export const getSubscriptionExpiryStats = async () => {
+  try {
+    const { data, error } = await supabase.rpc("get_subscription_expiry_stats");
+
+    if (error) {
+      console.error("Subscription expiry stats error:", error);
+      return {
+        success: false,
+        message: error.message,
+        data: {
+          expiring_today: 0,
+          expiring_this_week: 0,
+          expired_this_week: 0,
+          expiring_next_week: 0,
+        },
+      };
+    }
+
+    return {
+      success: true,
+      data: data[0] || {
+        expiring_today: 0,
+        expiring_this_week: 0,
+        expired_this_week: 0,
+        expiring_next_week: 0,
+      },
+    };
+  } catch (error: any) {
+    console.error("Subscription expiry stats exception:", error);
+    return {
+      success: false,
+      message: error.message,
+      data: {
+        expiring_today: 0,
+        expiring_this_week: 0,
+        expired_this_week: 0,
+        expiring_next_week: 0,
+      },
+    };
+  }
+};

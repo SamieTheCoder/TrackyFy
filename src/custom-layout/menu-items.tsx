@@ -8,15 +8,16 @@ import {
 } from "@/components/ui/sheet";
 import { IUser } from "@/interfaces";
 import { SignOutButton } from "@clerk/nextjs";
+
 import {
-  BadgeDollarSign,
+  CalendarSync,
   FolderKanban,
   Home,
   List,
   LogOut,
   User2,
   UserPlus,
-  Settings,
+  BanknoteArrowUp,
   CreditCard,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -43,7 +44,7 @@ function MenuItems({ user, openMenuItems, setOpenMenuItems }: IMenuItemsProps) {
     },
     {
       name: "Subscriptions",
-      icon: <BadgeDollarSign size={iconSize} />,
+      icon: <CalendarSync size={iconSize} />,
       route: "/account/user/subscriptions",
     },
     {
@@ -66,8 +67,8 @@ function MenuItems({ user, openMenuItems, setOpenMenuItems }: IMenuItemsProps) {
       route: "/account/admin/users",
     },
     {
-      name: "Subscriptions",
-      icon: <BadgeDollarSign size={iconSize} />,
+      name: "Subscriptions Purchased",
+      icon: <CalendarSync size={iconSize} />,
       route: "/account/admin/subscriptions",
     },
     {
@@ -77,7 +78,7 @@ function MenuItems({ user, openMenuItems, setOpenMenuItems }: IMenuItemsProps) {
     },
     {
       name: "Cash Approval",
-      icon: <List size={iconSize} />,
+      icon: <BanknoteArrowUp size={iconSize} />,
       route: "/account/admin/cashapproval",
     },
     {

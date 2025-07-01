@@ -13,14 +13,15 @@ import {
   TrendingUp, 
   AlertTriangle, 
   Calendar,
-  DollarSign,
+  IndianRupee,
   User,
   Shield,
   CheckCircle,
   XCircle,
   Copy,
   ExternalLink,
-  Download
+  Download,
+  CalendarSync
 } from "lucide-react";
 import toast from "react-hot-toast";
 import AdminDashboard from "./_components/admin-dashboard";
@@ -254,7 +255,7 @@ function AccountPage() {
               <div className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-center space-x-3">
-                    <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-slate-500 dark:text-slate-400" />
+                    <CalendarSync className="h-5 w-5 sm:h-6 sm:w-6 text-slate-500 dark:text-slate-400" />
                     <h3 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-slate-100">Subscription Details</h3>
                   </div>
                   <div className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium flex items-center whitespace-nowrap ${
@@ -344,7 +345,7 @@ function AccountPage() {
 
                     <div className="flex justify-between items-center p-3 sm:p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
                       <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400 flex items-center">
-                        <DollarSign className="h-4 w-4 mr-2" />
+                        <IndianRupee className="h-4 w-4 mr-2" />
                         Amount Paid
                       </span>
                       <span className="font-bold text-emerald-700 dark:text-emerald-400 text-lg">

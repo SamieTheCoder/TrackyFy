@@ -24,17 +24,16 @@ interface RevenueChartProps {
 const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-lg border bg-white dark:bg-gray-800 p-2 shadow-sm">
-        <div className="text-sm font-medium">{label}</div>
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+      <div className="rounded-lg border bg-white dark:bg-slate-800 p-3 shadow-sm border-slate-200 dark:border-slate-700">
+        <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{label}</div>
+        <div className="flex items-center justify-between gap-2 mt-1">
+          <div className="flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400">
             <div
-              className="h-2 w-2 rounded-full"
-              style={{ backgroundColor: "hsl(var(--chart-1))" }}
+              className="h-2 w-2 rounded-full bg-slate-600"
             />
             <span>Revenue</span>
           </div>
-          <div className="text-sm font-medium">
+          <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
             ₹{Number(payload[0].value).toLocaleString()}
           </div>
         </div>
@@ -100,16 +99,16 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full border-slate-200 dark:border-slate-700">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Monthly Revenue</CardTitle>
-          <CardDescription>{new Date().getFullYear()} Revenue Report</CardDescription>
+          <CardTitle className="text-slate-900 dark:text-slate-100">Monthly Revenue</CardTitle>
+          <CardDescription className="text-slate-600 dark:text-slate-400">{new Date().getFullYear()} Revenue Report</CardDescription>
         </div>
         <Button 
           variant="outline" 
           size="sm" 
-          className="flex items-center gap-1"
+          className="flex items-center gap-1 border-slate-300 dark:border-slate-600"
           onClick={exportCSV}
         >
           <Download className="h-4 w-4" />
@@ -120,23 +119,25 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
         <ChartContainer config={chartConfig} className="min-h-[300px]">
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={chartData}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis 
                 dataKey="month" 
                 tickLine={false} 
                 tickMargin={10} 
                 axisLine={false}
+                tick={{ fill: '#64748b', fontSize: 12 }}
               />
               <YAxis 
                 tickFormatter={(value: number) => `₹${value}`}
                 tickLine={false}
                 axisLine={false}
                 tickMargin={10}
+                tick={{ fill: '#64748b', fontSize: 12 }}
               />
               <Tooltip content={<CustomTooltip />} />
               <Bar 
                 dataKey="revenue" 
-                fill="hsl(var(--chart-1))" 
+                fill="#64748b"
                 radius={[4, 4, 0, 0]} 
               />
             </BarChart>
@@ -144,7 +145,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
         </ChartContainer>
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm">
-        <div className="flex gap-2 font-medium leading-none">
+        <div className="flex gap-2 font-medium leading-none text-slate-700 dark:text-slate-300">
           {trend.trending === "up" ? (
             <>Trending up by {trend.percentage}% this month <TrendingUp className="h-4 w-4 text-green-500" /></>
           ) : trend.trending === "down" ? (
@@ -153,7 +154,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
             <>No change this month</>
           )}
         </div>
-        <div className="leading-none text-muted-foreground">
+        <div className="leading-none text-slate-500 dark:text-slate-400">
           Showing monthly revenue for {new Date().getFullYear()}
         </div>
       </CardFooter>
