@@ -9,6 +9,7 @@ export interface IUser {
   clerk_url: string;
   profile_image: string;
   avatar_url?: string; 
+  is_customer?: boolean;
 }
 export interface IPlan {
   id: string;
@@ -41,6 +42,7 @@ export interface ISubscription {
   created_at: string;
   is_cash_approval?: boolean; // Add this field
   payment_gateway?: string;
+  
 }
 
 export interface SubscriptionProgress {

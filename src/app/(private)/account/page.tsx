@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import PageTitle from "@/components/ui/page-title";
 import usersGlobalStore, {
@@ -21,7 +21,8 @@ import {
   Copy,
   ExternalLink,
   Download,
-  CalendarSync
+  CalendarSync,
+  RefreshCw
 } from "lucide-react";
 import toast from "react-hot-toast";
 import AdminDashboard from "./_components/admin-dashboard";
@@ -31,7 +32,9 @@ import QuickActions from "./_components/quick-actions";
 import { generatePDFInvoice } from "./_utils/pdf-generator";
 
 function AccountPage() {
+  // Removed refreshUserData from destructuring
   const { user, currentSubscription } = usersGlobalStore() as IUsersGlobalStore;
+  const [refreshing, setRefreshing] = useState(false);
 
   // Calculate subscription progress with proper typing
   const subscriptionProgress = useMemo(() => {
@@ -69,6 +72,22 @@ function AccountPage() {
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${label} copied to clipboard`);
+  };
+
+  // Refresh function for subscription data
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      toast.loading("Refreshing subscription data...");
+      
+      // No refreshUserData in store, fallback to reload
+      window.location.reload();
+    } catch (error) {
+      toast.dismiss();
+      toast.error("Failed to refresh subscription data");
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   // Download PDF invoice functionality
@@ -110,7 +129,7 @@ function AccountPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min极-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-8">
         {/* Welcome Header */}
         <div className="mb-8">
@@ -128,16 +147,29 @@ function AccountPage() {
         </div>
 
         {!currentSubscription ? (
-          /* No Subscription State */
+          /* No Subscription State with Refresh Button */
           <div className="max-w-4xl mx-auto">
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-              <div className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-6">
-                <div className="flex items-center space-x-3">
-                  <CreditCard className="h-8 w-8 text-slate-500 dark:text-slate-400" />
-                  <div>
-                    <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">No Active Subscription</h2>
-                    <p className="text-slate-600 dark:text-slate-400">Start your journey with us today</p>
+              <div className="bg-slate-50 dark:极-slate-800 border-b border-slate-200 dark:border-slate-700 p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <CreditCard className="h-8 w-8 text-slate-500 dark:text-slate-400" />
+                    <div>
+                      <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">No Active Subscription</h2>
+                      <p className="text-slate-600 dark:text-slate-400">Start your journey with us today</p>
+                    </div>
                   </div>
+                  {/* Refresh Button */}
+                  <Button
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    variant="outline"
+                    size="sm"
+                    className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                    {refreshing ? 'Refreshing...' : 'Refresh'}
+                  </Button>
                 </div>
               </div>
               
@@ -166,7 +198,7 @@ function AccountPage() {
                     </Button>
                     
                     <Button variant="outline" className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 px-8 py-3 rounded-lg transition-all duration-200">
-                      <ExternalLink size={20} className="mr-2" />
+                      <ExternalLink size={20} className="mr极-2" />
                       Learn More
                     </Button>
                   </div>
@@ -293,7 +325,7 @@ function AccountPage() {
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center p-3 sm:p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
+                    <div className="flex justify-between items-center p-3 sm:p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-极6">
                       <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
                         Plan
                       </span>
@@ -312,7 +344,7 @@ function AccountPage() {
                       </span>
                     </div>
 
-                    <div className="flex justify-between items-center p-3 sm:p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
+                    <div className="flex justify between items-center p-3 sm:p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
                       <span className="text-sm font-medium text-slate-600 dark:text-slate-400 flex items-center">
                         <Calendar className="h-4 w-4 mr-2" />
                         End Date

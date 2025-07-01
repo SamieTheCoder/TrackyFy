@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import RevenueChart from "./revenue-chart";
 import ExpiringSubscriptionsWidget from "./expiring-subscriptions-widget";
 import SubscriptionExpiryChart from "./subscription-expiry-chart";
@@ -54,64 +54,69 @@ function AdminDashboard() {
   });
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
+  // Fixed fetchData function with useCallback and proper dependencies
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Fetch users data
-      const usersReportResponse = await getUsersReport();
-      if (usersReportResponse.success) {
-        setUserData(
-          usersReportResponse.data || {
-            users_count: 0,
-            customers_count: 0,
-            admins_count: 0,
-          }
-        );
-      } else {
-        console.error("User report failed:", usersReportResponse.message);
-        toast.error(usersReportResponse.message);
+      // Fetch all data in parallel to improve performance
+      const [
+        usersReportResponse,
+        subscriptionsReportResponse,
+        monthlyRevenueResponse,
+        expiringResponse,
+        expiredResponse,
+        expiryStatsResponse
+      ] = await Promise.allSettled([
+        getUsersReport(),
+        getSubscriptionsReport(),
+        getMonthlyRevenueReport(),
+        getExpiringSubscriptions(),
+        getExpiredSubscriptions(),
+        getSubscriptionExpiryStats()
+      ]);
+
+      // Handle users data
+      if (usersReportResponse.status === 'fulfilled' && usersReportResponse.value.success) {
+        setUserData(usersReportResponse.value.data || {
+          users_count: 0,
+          customers_count: 0,
+          admins_count: 0,
+        });
+      } else if (usersReportResponse.status === 'rejected') {
+        console.error("User report failed:", usersReportResponse.reason);
       }
 
-      // Fetch subscriptions data
-      const subscriptionsReportResponse = await getSubscriptionsReport();
-      if (subscriptionsReportResponse.success) {
-        setSubscriptionData(
-          subscriptionsReportResponse.data || {
-            subscriptions_count: 0,
-            total_revenue: 0,
-          }
-        );
-      } else {
-        console.error("Subscription report failed:", subscriptionsReportResponse.message);
-        toast.error(subscriptionsReportResponse.message);
+      // Handle subscriptions data
+      if (subscriptionsReportResponse.status === 'fulfilled' && subscriptionsReportResponse.value.success) {
+        setSubscriptionData(subscriptionsReportResponse.value.data || {
+          subscriptions_count: 0,
+          total_revenue: 0,
+        });
+      } else if (subscriptionsReportResponse.status === 'rejected') {
+        console.error("Subscription report failed:", subscriptionsReportResponse.reason);
       }
 
-      // Fetch monthly revenue data
-      const monthlyRevenueResponse = await getMonthlyRevenueReport();
-      if (monthlyRevenueResponse.success) {
-        setMonthlyRevenueData(monthlyRevenueResponse.data || []);
-      } else {
-        console.error("Monthly revenue report failed:", monthlyRevenueResponse.message);
-        toast.error(monthlyRevenueResponse.message);
+      // Handle monthly revenue data
+      if (monthlyRevenueResponse.status === 'fulfilled' && monthlyRevenueResponse.value.success) {
+        setMonthlyRevenueData(monthlyRevenueResponse.value.data || []);
+      } else if (monthlyRevenueResponse.status === 'rejected') {
+        console.error("Monthly revenue report failed:", monthlyRevenueResponse.reason);
       }
 
-      // Fetch expiring subscriptions
-      const expiringResponse = await getExpiringSubscriptions();
-      if (expiringResponse.success) {
-        setExpiringSubscriptions(expiringResponse.data || []);
+      // Handle expiring subscriptions
+      if (expiringResponse.status === 'fulfilled' && expiringResponse.value.success) {
+        setExpiringSubscriptions(expiringResponse.value.data || []);
       }
 
-      // Fetch expired subscriptions
-      const expiredResponse = await getExpiredSubscriptions();
-      if (expiredResponse.success) {
-        setExpiredSubscriptions(expiredResponse.data || []);
+      // Handle expired subscriptions
+      if (expiredResponse.status === 'fulfilled' && expiredResponse.value.success) {
+        setExpiredSubscriptions(expiredResponse.value.data || []);
       }
 
-      // Fetch expiry statistics
-      const expiryStatsResponse = await getSubscriptionExpiryStats();
-      if (expiryStatsResponse.success) {
-        setExpiryStats(expiryStatsResponse.data || {
+      // Handle expiry statistics
+      if (expiryStatsResponse.status === 'fulfilled' && expiryStatsResponse.value.success) {
+        setExpiryStats(expiryStatsResponse.value.data || {
           expiring_today: 0,
           expiring_this_week: 0,
           expired_this_week: 0,
@@ -125,14 +130,15 @@ function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // Empty dependency array - this is the key fix!
 
+  // Fixed useEffect with proper dependency
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]); // Only depend on fetchData
 
-  // Status badge component similar to subscription page
-  const getStatusBadge = (label: string, isAlert: boolean = false) => {
+  // Memoized status badge to prevent re-renders
+  const getStatusBadge = useMemo(() => (label: string, isAlert: boolean = false) => {
     if (isAlert) {
       return (
         <span className="px-2 py-1 text-xs rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 flex items-center">
@@ -146,46 +152,41 @@ function AdminDashboard() {
         {label}
       </span>
     );
-  };
+  }, []);
 
-// Metric card component similar to subscription cards
-const MetricCard= ({
-  title,
-  value,
-  description,
-  icon: Icon,
-  isCurrency = false,
-  isAlert = false,
-}: {
-  title: string;
-  value: number;
-  description: string;
-  icon: any;
-  isCurrency?: boolean;
-  isAlert?: boolean;
-}) => (
-  <div className="flex items-center bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 space-x-4">
-    <span className="inline-flex items-center justify-center h-12 w-12 rounded-lg bg-slate-100 dark:bg-slate-700">
-      <Icon className="h-6 w-6 text-slate-600 dark:text-slate-400" />
-    </span>
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center gap-2">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">{title}</h3>
-        {getStatusBadge(isAlert ? 'Alert' : 'Active', isAlert)}
+  // Memoized MetricCard component
+  const MetricCard = React.memo(({
+    title,
+    value,
+    description,
+    icon: Icon,
+    isCurrency = false,
+    isAlert = false,
+  }: {
+    title: string;
+    value: number;
+    description: string;
+    icon: any;
+    isCurrency?: boolean;
+    isAlert?: boolean;
+  }) => (
+    <div className="flex items-center bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 space-x-4">
+      <span className="inline-flex items-center justify-center h-12 w-12 rounded-lg bg-slate-100 dark:bg-slate-700">
+        <Icon className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">{title}</h3>
+          {getStatusBadge(isAlert ? 'Alert' : 'Active', isAlert)}
+        </div>
+        <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+          {isCurrency ? `₹${Number(value).toLocaleString()}` : Number(value).toLocaleString()}
+        </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{description}</p>
       </div>
-      <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-        {isCurrency ? `₹${Number(value).toLocaleString()}` : Number(value).toLocaleString()}
-      </div>
-      <p className="text-xs text-slate-500 dark:text-slate-400">{description}</p>
+      <div className="text-xs text-slate-400">{new Date().toLocaleDateString()}</div>
     </div>
-    <div className="text-xs text-slate-400">{new Date().toLocaleDateString()}</div>
-  </div>
-);
-
-
-
-
-
+  ));
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -197,7 +198,7 @@ const MetricCard= ({
             </div>
           )}
 
-          {/* Header - Same style as subscriptions page */}
+          {/* Header */}
           <div className="mb-8">
             <div className="flex items-center space-x-3 mb-4">
               <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center">
@@ -225,7 +226,7 @@ const MetricCard= ({
             </Button>
           </div>
 
-          {/* Metrics Grid - Same style as subscriptions page */}
+          {/* Metrics Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 mb-8">
             <MetricCard
               title="Total Users"

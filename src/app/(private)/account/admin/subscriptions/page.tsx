@@ -6,16 +6,54 @@ import { ISubscription } from "@/interfaces";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
 import Spinner from "@/components/ui/spinner";
-import { ArrowUpDown, ArrowDown, ArrowUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { 
+  ArrowUpDown, 
+  ArrowDown, 
+  ArrowUp, 
+  Search,
+  Filter,
+  Download,
+  RefreshCw,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  Users,
+  Package,
+  BarChart3,
+  Eye,
+  FileText
+} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  LineChart, 
+  Line, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from "recharts";
 
 type SortField = "id" | "created_at" | "user" | "start_date" | "end_date" | "plan" | "amount" | "payment_id";
 type SortDirection = "asc" | "desc";
+type FilterStatus = "all" | "active" | "expired" | "expiring";
 
 function AdminSubscriptions() {
   const [subscriptions, setSubscriptions] = useState<ISubscription[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [sortField, setSortField] = useState<SortField>("created_at");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
 
   const columns = [
     { key: "id", label: "Subscription ID" },
@@ -47,6 +85,77 @@ function AdminSubscriptions() {
     getData();
   }, []);
 
+  // Analytics calculations
+  const analyticsData = useMemo(() => {
+    if (!subscriptions.length) return null;
+
+    // Monthly subscription data
+    const monthlyData = subscriptions.reduce((acc: any, sub) => {
+      const month = dayjs(sub.created_at).format("YYYY-MM");
+      const monthLabel = dayjs(sub.created_at).format("MMM YYYY");
+      
+      if (!acc[month]) {
+        acc[month] = {
+          month: monthLabel,
+          subscriptions: 0,
+          revenue: 0,
+          customers: new Set()
+        };
+      }
+      
+      acc[month].subscriptions += 1;
+      acc[month].revenue += sub.amount;
+      acc[month].customers.add(sub.user?.name || 'Unknown');
+      
+      return acc;
+    }, {});
+
+    const monthlyStats = Object.values(monthlyData).map((data: any) => ({
+      ...data,
+      customers: data.customers.size
+    }));
+
+    // Plan distribution
+    const planData = subscriptions.reduce((acc: any, sub) => {
+      const planName = sub.plan?.name || 'Unknown Plan';
+      if (!acc[planName]) {
+        acc[planName] = { name: planName, count: 0, revenue: 0 };
+      }
+      acc[planName].count += 1;
+      acc[planName].revenue += sub.amount;
+      return acc;
+    }, {});
+
+    const planStats = Object.values(planData);
+
+    // Status distribution
+    const now = dayjs();
+    const statusData = subscriptions.reduce((acc: any, sub) => {
+      const endDate = dayjs(sub.end_date);
+      const daysRemaining = endDate.diff(now, 'day');
+      
+      let status = 'active';
+      if (daysRemaining < 0) status = 'expired';
+      else if (daysRemaining <= 7) status = 'expiring';
+      
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      totalSubscriptions: subscriptions.length,
+      totalRevenue: subscriptions.reduce((sum, sub) => sum + sub.amount, 0),
+      avgRevenuePerSub: subscriptions.reduce((sum, sub) => sum + sub.amount, 0) / subscriptions.length,
+      monthlyStats: monthlyStats.sort((a, b) => dayjs(a.month, "MMM YYYY").valueOf() - dayjs(b.month, "MMM YYYY").valueOf()),
+      planStats,
+      statusData: [
+        { name: 'Active', value: statusData.active || 0, color: '#10b981' },
+        { name: 'Expiring Soon', value: statusData.expiring || 0, color: '#f59e0b' },
+        { name: 'Expired', value: statusData.expired || 0, color: '#ef4444' }
+      ]
+    };
+  }, [subscriptions]);
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -59,21 +168,56 @@ function AdminSubscriptions() {
   const renderSortIcon = (field: string) => {
     if (sortField !== field) return <ArrowUpDown size={14} className="ml-1 opacity-50" />;
     return sortDirection === "asc" ? (
-      <ArrowUp size={14} className="ml-1 text-orange-500" />
+      <ArrowUp size={14} className="ml-1 text-slate-600 dark:text-slate-400" />
     ) : (
-      <ArrowDown size={14} className="ml-1 text-orange-500" />
+      <ArrowDown size={14} className="ml-1 text-slate-600 dark:text-slate-400" />
     );
   };
 
-  const sortedSubscriptions = useMemo(() => {
-    return [...subscriptions].sort((a, b) => {
+  const getSubscriptionStatus = (subscription: ISubscription) => {
+    const now = dayjs();
+    const endDate = dayjs(subscription.end_date);
+    const daysRemaining = endDate.diff(now, 'day');
+
+    if (daysRemaining < 0) return 'expired';
+    if (daysRemaining <= 7) return 'expiring';
+    return 'active';
+  };
+
+  const filteredAndSortedSubscriptions = useMemo(() => {
+    let filtered = subscriptions.filter((subscription) => {
+      // Search filter
+      const matchesSearch = 
+        subscription.plan?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        subscription.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        subscription.payment_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        subscription.id?.toString().includes(searchTerm);
+
+      if (!matchesSearch) return false;
+
+      // Status filter
+      if (filterStatus !== "all") {
+        const status = getSubscriptionStatus(subscription);
+        if (status !== filterStatus) return false;
+      }
+
+      // Month filter
+      if (selectedMonth) {
+        const subMonth = dayjs(subscription.created_at).format("YYYY-MM");
+        if (subMonth !== selectedMonth) return false;
+      }
+
+      return true;
+    });
+
+    return filtered.sort((a, b) => {
       if (sortField === "user") {
-        return sortDirection === "asc" 
-          ? (a.user?.name || "").localeCompare(b.user?.name || "") 
+        return sortDirection === "asc"
+          ? (a.user?.name || "").localeCompare(b.user?.name || "")
           : (b.user?.name || "").localeCompare(a.user?.name || "");
       } else if (sortField === "plan") {
-        return sortDirection === "asc" 
-          ? (a.plan?.name || "").localeCompare(b.plan?.name || "") 
+        return sortDirection === "asc"
+          ? (a.plan?.name || "").localeCompare(b.plan?.name || "")
           : (b.plan?.name || "").localeCompare(a.plan?.name || "");
       } else if (["created_at", "start_date", "end_date"].includes(sortField)) {
         return sortDirection === "asc"
@@ -90,103 +234,483 @@ function AdminSubscriptions() {
           : String(b[sortField]).localeCompare(String(a[sortField]));
       }
     });
-  }, [subscriptions, sortField, sortDirection]);
+  }, [subscriptions, sortField, sortDirection, searchTerm, filterStatus, selectedMonth]);
+
+  const exportData = () => {
+    const csvData = [
+      ['Subscription ID', 'Customer', 'Plan', 'Amount', 'Start Date', 'End Date', 'Status', 'Payment ID'],
+      ...filteredAndSortedSubscriptions.map(sub => [
+        sub.id,
+        sub.user?.name || 'Unknown',
+        sub.plan?.name || 'Unknown',
+        sub.amount,
+        dayjs(sub.start_date).format('YYYY-MM-DD'),
+        dayjs(sub.end_date).format('YYYY-MM-DD'),
+        getSubscriptionStatus(sub),
+        sub.payment_id
+      ])
+    ];
+    
+    const csvContent = csvData.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `subscriptions-${dayjs().format('YYYY-MM-DD')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'expired':
+        return (
+          <span className="px-2 py-1 text-xs rounded-full bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800">
+            Expired
+          </span>
+        );
+      case 'expiring':
+        return (
+          <span className="px-2 py-1 text-xs rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+            Expiring Soon
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2 py-1 text-xs rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+            Active
+          </span>
+        );
+    }
+  };
+
+  // Get unique months for filter
+  const availableMonths = useMemo(() => {
+    const months = subscriptions.map(sub => ({
+      value: dayjs(sub.created_at).format("YYYY-MM"),
+      label: dayjs(sub.created_at).format("MMM YYYY")
+    }));
+    
+    const uniqueMonths = months.filter((month, index, self) => 
+      index === self.findIndex(m => m.value === month.value)
+    );
+    
+    return uniqueMonths.sort((a, b) => dayjs(a.value).valueOf() - dayjs(b.value).valueOf());
+  }, [subscriptions]);
 
   return (
-    <div className="relative">
-      <PageTitle title="All Subscriptions" />
-      
-      {loading && (
-        <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/70 z-20 backdrop-blur-sm rounded-xl">
-          <Spinner parentHeight="100%" />
-        </div>
-      )}
-      
-      <div className="mb-4 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex flex-wrap gap-3 items-center">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sort by:</span>
-          {columns.map((column) => (
-            <button
-              key={column.key}
-              onClick={() => handleSort(column.key as SortField)}
-              className={`px-3 py-1.5 text-sm rounded-full flex items-center transition-colors ${
-                sortField === column.key 
-                  ? "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400" 
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-              }`}
-            >
-              {column.label}
-              {renderSortIcon(column.key)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {!subscriptions.length && !loading && (
-        <div className="p-8 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 text-center">
-          <p className="text-gray-500 dark:text-gray-400">No subscriptions found in the system.</p>
-        </div>
-      )}
-
-      {subscriptions.length > 0 && !loading && (
-        <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700">
-          <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-r from-orange-400 to-orange-600"></div>
-          
-          <div className="p-5">
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-lg font-bold text-gray-800 dark:text-white">All Subscriptions</h3>
-              <span className="px-2 py-1 text-xs rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
-                {subscriptions.length} Total
-              </span>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto px-4 py-8">
+        <div className="relative">
+          {loading && (
+            <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/70 z-20 backdrop-blur-sm rounded-xl">
+              <Spinner parentHeight="100%" />
             </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 dark:bg-gray-700/50">
-                    {columns.map((column) => (
-                      <th 
-                        key={column.key}
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
-                        onClick={() => handleSort(column.key as SortField)}
-                      >
-                        <div className="flex items-center">
-                          {column.label}
-                          {renderSortIcon(column.key)}
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {sortedSubscriptions.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{item.id}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                        {dayjs(item.created_at).format("MMM DD, YYYY")}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{item.user?.name}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                        {dayjs(item.start_date).format("MMM DD, YYYY")}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                        {dayjs(item.end_date).format("MMM DD, YYYY")}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-orange-600 dark:text-orange-400">{item.plan?.name}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹{item.amount}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                        <span className="max-w-[120px] truncate inline-block" title={item.payment_id}>
-                          {item.payment_id}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          )}
+
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-slate-600 dark:text-slate-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <PageTitle title="All Subscriptions" />
+                <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm sm:text-base">
+                  Manage and analyze all subscription data
+                </p>
+              </div>
             </div>
           </div>
+
+          {/* Analytics Dashboard */}
+          {analyticsData && (
+            <Tabs defaultValue="overview" className="mb-8">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
+              </TabsList>
+
+              {/* Overview Tab */}
+              <TabsContent value="overview" className="space-y-6">
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Subscriptions</p>
+                          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                            {analyticsData.totalSubscriptions}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                          <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Revenue</p>
+                          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                            ₹{analyticsData.totalRevenue.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                          <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Avg Revenue/Sub</p>
+                          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                            ₹{Math.round(analyticsData.avgRevenuePerSub).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
+                          <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">This Month</p>
+                          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                            {analyticsData.monthlyStats[analyticsData.monthlyStats.length - 1]?.subscriptions || 0}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
+                          <Calendar className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Status Distribution */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Subscription Status</CardTitle>
+                      <CardDescription>Distribution of subscription statuses</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={analyticsData.statusData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={100}
+                              paddingAngle={5}
+                              dataKey="value"
+                            >
+                              {analyticsData.statusData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Monthly Trends</CardTitle>
+                      <CardDescription>Subscription growth over time</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={analyticsData.monthlyStats}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                            <YAxis tick={{ fontSize: 12 }} />
+                            <Tooltip />
+                            <Line 
+                              type="monotone" 
+                              dataKey="subscriptions" 
+                              stroke="#3b82f6" 
+                              strokeWidth={2}
+                              name="Subscriptions"
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* Analytics Tab */}
+              <TabsContent value="analytics" className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Monthly Revenue Chart */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Monthly Revenue</CardTitle>
+                      <CardDescription>Revenue trends by month</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={analyticsData.monthlyStats}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                            <YAxis tickFormatter={(value) => `₹${value}`} tick={{ fontSize: 12 }} />
+                            <Tooltip formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Revenue']} />
+                            <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Plan Distribution */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Plan Performance</CardTitle>
+                      <CardDescription>Subscriptions by plan type</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {analyticsData.planStats.slice(0, 5).map((plan: any, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                            <div>
+                              <div className="font-medium text-slate-900 dark:text-slate-100">{plan.name}</div>
+                              <div className="text-sm text-slate-500 dark:text-slate-400">{plan.count} subscriptions</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold text-slate-900 dark:text-slate-100">
+                                ₹{plan.revenue.toLocaleString()}
+                              </div>
+                              <div className="text-sm text-slate-500 dark:text-slate-400">
+                                ₹{Math.round(plan.revenue / plan.count).toLocaleString()} avg
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Monthly Statistics Table */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Monthly Statistics</CardTitle>
+                    <CardDescription>Detailed month-wise breakdown</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50 dark:bg-slate-700/50">
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Month</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Subscriptions</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Revenue</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Customers</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Avg/Sub</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                          {analyticsData.monthlyStats.map((month: any, index) => (
+                            <tr key={index} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                              <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">{month.month}</td>
+                              <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">{month.subscriptions}</td>
+                              <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">₹{month.revenue.toLocaleString()}</td>
+                              <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">{month.customers}</td>
+                              <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">₹{Math.round(month.revenue / month.subscriptions).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Subscriptions Tab */}
+              <TabsContent value="subscriptions" className="space-y-6">
+                {/* Filters and Actions */}
+                <div className="flex flex-col gap-4">
+                  {/* Search and Filters */}
+                  <div className="flex flex-col lg:flex-row gap-4">
+                    {/* Search */}
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Input
+                        placeholder="Search subscriptions..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+
+                    {/* Status Filter */}
+                    <div className="relative">
+                      <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value as FilterStatus)}
+                        className="w-full lg:w-40 pl-10 pr-8 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 appearance-none"
+                      >
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="expiring">Expiring</option>
+                        <option value="expired">Expired</option>
+                      </select>
+                      <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                    </div>
+
+                    {/* Month Filter */}
+                    <div className="relative">
+                      <select
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        className="w-full lg:w-40 pl-10 pr-8 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 appearance-none"
+                      >
+                        <option value="">All Months</option>
+                        {availableMonths.map((month) => (
+                          <option key={month.value} value={month.value}>
+                            {month.label}
+                          </option>
+                        ))}
+                      </select>
+                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={getData}
+                        disabled={loading}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                        Refresh
+                      </Button>
+                      <Button
+                        onClick={exportData}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Sort Options */}
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Sort by:</span>
+                    {columns.map((column) => (
+                      <button
+                        key={column.key}
+                        onClick={() => handleSort(column.key as SortField)}
+                        className={`px-3 py-1.5 text-sm rounded-lg flex items-center transition-colors ${
+                          sortField === column.key
+                            ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600"
+                        }`}
+                      >
+                        {column.label}
+                        {renderSortIcon(column.key)}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Results Summary */}
+                  <div className="text-sm text-slate-600 dark:text-slate-400">
+                    Showing {filteredAndSortedSubscriptions.length} of {subscriptions.length} subscriptions
+                  </div>
+                </div>
+
+                {/* Subscriptions Table */}
+                {!subscriptions.length && !loading && (
+                  <div className="p-8 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 text-center">
+                    <Package className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-500 dark:text-slate-400">No subscriptions found in the system.</p>
+                  </div>
+                )}
+
+                {filteredAndSortedSubscriptions.length > 0 && !loading && (
+                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50 dark:bg-slate-700/50">
+                            {columns.map((column) => (
+                              <th 
+                                key={column.key}
+                                className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
+                                onClick={() => handleSort(column.key as SortField)}
+                              >
+                                <div className="flex items-center">
+                                  {column.label}
+                                  {renderSortIcon(column.key)}
+                                </div>
+                              </th>
+                            ))}
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                          {filteredAndSortedSubscriptions.map((item) => (
+                            <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                              <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">{item.id}</td>
+                              <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">
+                                {dayjs(item.created_at).format("MMM DD, YYYY")}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">{item.user?.name}</td>
+                              <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">
+                                {dayjs(item.start_date).format("MMM DD, YYYY")}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">
+                                {dayjs(item.end_date).format("MMM DD, YYYY")}
+                              </td>
+                              <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">{item.plan?.name}</td>
+                              <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">₹{item.amount}</td>
+                              <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">
+                                <span className="max-w-[120px] truncate inline-block" title={item.payment_id}>
+                                  {item.payment_id}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-sm">
+                                {getStatusBadge(getSubscriptionStatus(item))}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
