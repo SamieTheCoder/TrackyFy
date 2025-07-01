@@ -40,4 +40,14 @@ export interface ISubscription {
   total_duration: number;
   created_at: string;
   is_cash_approval?: boolean; // Add this field
+  payment_gateway?: string;
+}
+
+export interface SubscriptionProgress {
+  progressPercentage: number;
+  daysRemaining: number;
+  totalDays: number;
+  isExpiring: boolean;
+  isExpired: boolean;
+  status: 'active' | 'expiring' | 'expired';
 }
