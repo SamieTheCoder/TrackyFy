@@ -22,7 +22,8 @@ import {
   ArrowLeft,
   Filter,
   Search,
-  Package
+  Package,
+  HelpCircle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -57,6 +58,7 @@ function PurchasePlanPage() {
   const [plans, setPlans] = useState<IPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [contactSupportLoading, setContactSupportLoading] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("price");
   const [searchTerm, setSearchTerm] = useState("");
   const [priceFilter, setPriceFilter] = useState<"all" | "low" | "medium" | "high">("all");
@@ -188,6 +190,26 @@ function PurchasePlanPage() {
       setCheckoutLoading(false);
       router.push("/account/user/purchase-plan/checkout");
     }, 1000);
+  };
+
+  // Handle Contact Support with loading
+  const handleContactSupport = async () => {
+    setContactSupportLoading(true);
+    
+    try {
+      // Simulate async operation (replace with actual contact support logic)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Navigate to contact page or open support modal
+      router.push("/contact");
+      
+      // Or you could show a success message
+      // toast.success("Redirecting to support...");
+    } catch (error) {
+      toast.error("Failed to open support. Please try again.");
+    } finally {
+      setContactSupportLoading(false);
+    }
   };
 
   // Enhanced filtering and sorting
@@ -547,7 +569,7 @@ function PurchasePlanPage() {
               </div>
             )}
 
-            {/* Help Section */}
+            {/* Help Section - Updated with loading spinner for Contact Support */}
             <div className="mt-12 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-6 sm:p-8 rounded-xl border border-slate-200 dark:border-slate-600">
               <div className="text-center">
                 <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-slate-200 dark:bg-slate-600 rounded-full flex items-center justify-center mb-4">
@@ -558,12 +580,23 @@ function PurchasePlanPage() {
                   If you're not sure which plan is right for you, our team is happy to help you find the perfect fit for your needs. 
                   All plans come with a 30-day money-back guarantee.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button variant="outline" className="border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-                    <Link href="/contact">Contact Support</Link>
-                  </Button>
-                  <Button variant="outline" className="border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-                    <Link href="/plans/compare">Compare Plans</Link>
+                <div className="flex justify-center">
+                  <Button 
+                    onClick={handleContactSupport}
+                    disabled={contactSupportLoading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white border-0 transition-all duration-200 flex items-center justify-center gap-2 px-6 py-3"
+                  >
+                    {contactSupportLoading ? (
+                      <>
+                        <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Contacting Support...</span>
+                      </>
+                    ) : (
+                      <>
+                        <HelpCircle className="h-4 w-4" />
+                        <span>Contact Support</span>
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>

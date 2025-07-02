@@ -19,7 +19,7 @@ import {
   User,
   Package,
   Calendar,
-  DollarSign,
+  IndianRupee,
   Clock,
   ArrowLeft,
   RefreshCw,
@@ -249,7 +249,7 @@ function CashApprovalPage() {
           <div className="mb-8">
             <div className="flex items-center space-x-3 mb-4">
               <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-slate-600 dark:text-slate-400" />
+                <IndianRupee className="h-5 w-5 sm:h-6 sm:w-6 text-slate-600 dark:text-slate-400" />
               </div>
               <div className="flex-1 min-w-0">
                 <PageTitle title="Cash Payment Approvals" />
@@ -292,7 +292,7 @@ function CashApprovalPage() {
                   </p>
                 </div>
                 <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                  <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  <IndianRupee className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
             </div>
@@ -539,7 +539,7 @@ function CashApprovalPage() {
 
                       <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
                         <div className="flex items-center text-slate-600 dark:text-slate-400">
-                          <DollarSign className="h-4 w-4 mr-2" />
+                          <IndianRupee className="h-4 w-4 mr-2" />
                           <span className="text-sm font-medium">Amount</span>
                         </div>
                         <span className="text-lg font-bold text-orange-600 dark:text-orange-400">

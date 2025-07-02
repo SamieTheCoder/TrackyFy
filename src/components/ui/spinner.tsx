@@ -1,38 +1,55 @@
 import React from "react";
 
-function PulsatingDotsSpinner({
-  parentHeight,
+function PulseRingSpinner({
+  parentHeight = "100%",
+  size = "md",
+  color = "blue",
 }: {
-  parentHeight: number | string;
+  parentHeight?: number | string;
+  size?: "sm" | "md" | "lg";
+  color?: "blue" | "green" | "purple" | "gray";
 }) {
+  const sizeClasses = {
+    sm: "w-8 h-8",
+    md: "w-12 h-12",
+    lg: "w-16 h-16",
+  };
+
+  const colorClasses = {
+    blue: "border-blue-500",
+    green: "border-green-500",
+    purple: "border-purple-500",
+    gray: "border-gray-500",
+  };
+
   return (
     <div
-      className="flex justify-center items-center"
+      className="flex flex-col justify-center items-center"
       style={{ height: parentHeight }}
     >
-      <div className="flex space-x-3">
-        {[...Array(5)].map((_, i) => (
-          <div
-            key={i}
-            className="w-3 h-3 bg-primary rounded-full animate-[pulse_1.2s_ease-in-out_infinite]"
-            style={{
-              animationDelay: `${i * 0.15}s`,
-              transform: `scale(${1 + (i % 2) * 0.2})`,
-              opacity: 0.7 + (i % 3) * 0.1,
-            }}
-          >
-            <div
-              className="absolute w-full h-full rounded-full bg-primary opacity-30 animate-ping"
-              style={{ animationDuration: "1.5s" }}
-            ></div>
-          </div>
-        ))}
+      <div className="relative">
+        <div
+          className={`${sizeClasses[size]} ${colorClasses[color]} border-4 border-opacity-20 rounded-full`}
+        />
+        <div
+          className={`absolute top-0 left-0 ${sizeClasses[size]} ${colorClasses[color]} border-4 border-transparent border-t-current rounded-full animate-spin`}
+        />
+        <div
+          className={`absolute top-1 left-1 ${sizeClasses[size]} border-2 border-opacity-30 rounded-full animate-ping`}
+          style={{
+            width: `calc(100% - 8px)`,
+            height: `calc(100% - 8px)`,
+            borderColor: colorClasses[color]
+              .replace("border-", "")
+              .replace("-500", ""),
+          }}
+        />
       </div>
-      <div className="absolute mt-12 text-xs text-primary font-medium animate-pulse">
+      <div className="mt-4 text-sm text-slate-600 dark:text-slate-400 font-medium animate-pulse">
         Loading...
       </div>
     </div>
   );
 }
 
-export default PulsatingDotsSpinner;
+export default PulseRingSpinner;
