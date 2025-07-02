@@ -416,47 +416,50 @@ function UserSubscriptionsPage() {
 
                 {/* Content */}
                 <div className="p-4 space-y-4">
-                  {/* Dates */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          Start
-                        </span>
-                        <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                          {dayjs(subscription.start_date).format("MMM DD, YYYY")}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          End
-                        </span>
-                        <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                          {dayjs(subscription.end_date).format("MMM DD, YYYY")}
-                        </span>
-                      </div>
+                  {/* Dates - Fixed for mobile */}
+                  <div className="space-y-3">
+                    {/* Start Date */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Start Date
+                      </span>
+                      <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                        {dayjs(subscription.start_date).format("MMM DD, YYYY")}
+                      </span>
                     </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center">
-                          <Clock className="h-4 w-4 mr-2" />
-                          Duration
-                        </span>
-                        <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                          {subscription.total_duration} days
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center">
-                          <DollarSign className="h-4 w-4 mr-2" />
-                          Amount
-                        </span>
-                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                          Rs. {subscription.amount}
-                        </span>
-                      </div>
+                    
+                    {/* End Date */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        End Date
+                      </span>
+                      <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                        {dayjs(subscription.end_date).format("MMM DD, YYYY")}
+                      </span>
+                    </div>
+                    
+                    {/* Duration */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center">
+                        <Clock className="h-4 w-4 mr-2" />
+                        Duration
+                      </span>
+                      <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                        {subscription.total_duration} days
+                      </span>
+                    </div>
+                    
+                    {/* Amount */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center">
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        Amount
+                      </span>
+                      <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        Rs. {subscription.amount}
+                      </span>
                     </div>
                   </div>
 

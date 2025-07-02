@@ -9,7 +9,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Banknote, Calendar, Package, Tag, User } from "lucide-react";
 import toast from "react-hot-toast";
 import { createCashPaymentRequest } from "@/actions/cash-payments";
@@ -66,116 +65,95 @@ function CashPaymentForm({
     }
   };
 
-  // Color scheme function
-  const getPlanColorScheme = () => {
-    const name = selectedPaymentPlan?.mainPlan?.name.toLowerCase() || '';
-    
-    if (name.includes('basic')) {
-      return {
-        gradient: "from-[#FF6B6B] to-[#FF8E8E]",
-        bg: "bg-[#FFF0F0]",
-        border: "border-[#FF6B6B]",
-        text: "text-[#FF6B6B]"
-      };
-    } else if (name.includes('standard')) {
-      return {
-        gradient: "from-[#FF8008] to-[#FFA794]",
-        bg: "bg-[#FFF6F0]",
-        border: "border-[#FF8008]",
-        text: "text-[#FF8008]"
-      };
-    } else if (name.includes('premium')) {
-      return {
-        gradient: "from-[#FF512F] to-[#DD2476]",
-        bg: "bg-[#FFF0F6]",
-        border: "border-[#DD2476]",
-        text: "text-[#DD2476]"
-      };
-    } else {
-      return {
-        gradient: "from-[#FF9966] to-[#FF5E62]",
-        bg: "bg-[#FFF0F0]",
-        border: "border-[#FF5E62]",
-        text: "text-[#FF5E62]"
-      };
-    }
+  // Use the same color scheme as the Stripe CheckoutForm
+  const colorScheme = {
+    gradient: "from-indigo-500 to-purple-600",
+    bg: "bg-indigo-50 dark:bg-indigo-900/20",
+    border: "border-indigo-500",
+    text: "text-indigo-600 dark:text-indigo-400",
   };
-
-  const colorScheme = getPlanColorScheme();
 
   return (
     <Dialog open={showCashForm} onOpenChange={setShowCashForm}>
-      <DialogContent className="max-w-md">
-        <div className={`p-6 border-b border-gray-100 bg-gradient-to-r ${colorScheme.gradient} text-white rounded-t-lg`}>
-          <DialogTitle className="text-lg font-semibold mb-1 flex items-center">
+      <DialogContent className="max-w-md p-0 overflow-hidden rounded-xl">
+        {/* Header */}
+        <div
+          className={`p-6 border-b border-gray-100 bg-gradient-to-r ${colorScheme.gradient} text-white rounded-t-xl`}
+        >
+          <DialogTitle className="text-2xl font-bold flex items-center">
             <Banknote className="h-5 w-5 mr-2" />
             Cash Payment Request
           </DialogTitle>
-          <DialogDescription className="text-white/80 text-sm">
+          <DialogDescription className="text-white/80 mt-1">
             Submit request for manual payment approval
           </DialogDescription>
         </div>
 
-        <div className="p-6 space-y-4">
-          <div className="space-y-4">
+        {/* Details Card */}
+        <div className="p-6 space-y-4 bg-white dark:bg-slate-900">
+          <div className="grid grid-cols-1 gap-3">
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div className="flex items-center text-gray-700">
+              <div className="flex items-center text-gray-700 dark:text-gray-300">
                 <User className="h-4 w-4 mr-2" />
                 <span className="text-sm">Customer</span>
               </div>
-              <span className="font-medium text-gray-900 text-sm">
+              <span className="font-medium text-gray-900 dark:text-white text-sm truncate max-w-[140px] text-right">
                 {user?.name || user?.email}
               </span>
             </div>
-
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div className="flex items-center text-gray-700">
+              <div className="flex items-center text-gray-700 dark:text-gray-300">
                 <Package className="h-4 w-4 mr-2" />
                 <span className="text-sm">Plan</span>
               </div>
-              <span className="font-medium text-gray-900 text-sm">
+              <span className="font-medium text-gray-900 dark:text-white text-sm truncate max-w-[140px] text-right">
                 {selectedPaymentPlan?.mainPlan?.name}
               </span>
             </div>
-
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div className="flex items-center text-gray-700">
+              <div className="flex items-center text-gray-700 dark:text-gray-300">
                 <Tag className="h-4 w-4 mr-2" />
                 <span className="text-sm">Duration</span>
               </div>
-              <span className="font-medium text-gray-900 text-sm">
+              <span className="font-medium text-gray-900 dark:text-white text-sm text-right">
                 {selectedPaymentPlan?.paymentPlan?.planName}
               </span>
             </div>
-
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div className="flex items-center text-gray-700">
+              <div className="flex items-center text-gray-700 dark:text-gray-300">
                 <Calendar className="h-4 w-4 mr-2" />
                 <span className="text-sm">Period</span>
               </div>
-              <span className="font-medium text-gray-900 text-sm">
+              <span className="font-medium text-gray-900 dark:text-white text-sm text-right">
                 {startDate} to {endDate}
               </span>
             </div>
+          </div>
 
-            <div className={`pt-4 border-t border-gray-100 ${colorScheme.bg} -mx-6 px-6 pb-4 rounded-b-lg`}>
-              <div className="flex justify-between items-center mb-4">
-                <span className="font-medium text-gray-700">Total Amount</span>
-                <span className={`text-xl font-bold ${colorScheme.text}`}>
-                  ₹{selectedPaymentPlan?.paymentPlan?.price}
-                </span>
-              </div>
+          {/* Amount Card */}
+          <div
+            className={`pt-4 border-t border-gray-100 ${colorScheme.bg} -mx-6 px-6 pb-4 rounded-b-lg`}
+          >
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                Total Amount
+              </span>
+              <span className={`text-xl font-bold ${colorScheme.text}`}>
+                ₹{selectedPaymentPlan?.paymentPlan?.price}
+              </span>
             </div>
           </div>
 
+          {/* Note */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <p className="text-sm text-yellow-800">
-              <strong>Note:</strong> Your request will be sent to admin for approval. 
+              <strong>Note:</strong> Your request will be sent to admin for approval.
               You will be notified once the payment is processed.
             </p>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
             <Button
               variant="outline"
               className="flex-1"
@@ -185,7 +163,7 @@ function CashPaymentForm({
               Cancel
             </Button>
             <Button
-              className={`flex-1 bg-gradient-to-r ${colorScheme.gradient} hover:opacity-90 text-white`}
+              className={`flex-1 bg-gradient-to-r ${colorScheme.gradient} hover:opacity-90 text-white font-semibold`}
               onClick={handleCashPayment}
               disabled={isProcessing}
             >

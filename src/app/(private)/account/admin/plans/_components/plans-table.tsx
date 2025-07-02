@@ -15,7 +15,9 @@ import {
   Package,
   BadgeCheck,
   Flame,
-  IndianRupee
+  IndianRupee,
+  Dot,
+  Check
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Spinner from "@/components/ui/spinner";
@@ -326,7 +328,7 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
                       <div className="grid grid-cols-2 gap-2">
                         {plan.features.slice(0, 4).map((feature, index) => (
                           <div key={index} className="flex items-center text-sm text-slate-600 dark:text-slate-400">
-                            <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-2"></div>
+                            <Check className="h-3 w-3 text-green-500 mr-2 flex-shrink-0" />
                             <span className="truncate">{feature}</span>
                           </div>
                         ))}
