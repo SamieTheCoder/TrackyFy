@@ -13,8 +13,7 @@ import { Button } from "@/components/ui/button";
 import { 
   Check, 
   ChevronRight, 
-  ArrowUpDown, 
-  Star, 
+  ArrowUpDown,  
   Crown, 
   Zap,
   Shield,

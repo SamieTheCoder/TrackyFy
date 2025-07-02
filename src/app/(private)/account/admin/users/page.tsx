@@ -8,16 +8,16 @@ import Spinner from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { IUser } from "@/interfaces";
-import { 
-  Search, 
-  Filter, 
-  ArrowUpDown, 
-  ArrowUp, 
-  ArrowDown, 
-  Trash2, 
-  Shield, 
-  User, 
-  Mail, 
+import {
+  Search,
+  Filter,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Trash2,
+  Shield,
+  User,
+  Mail,
   Calendar,
   MoreVertical,
   AlertTriangle,
@@ -28,7 +28,7 @@ import {
   Package,
   ChevronRight,
   UserRoundCheck,
-  Activity
+  Activity,
 } from "lucide-react";
 import {
   Dialog,
@@ -64,7 +64,7 @@ interface DeleteUserData {
 
 function AdminUsersListPage() {
   const [users, setUsers] = useState<IUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("created_at");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -74,6 +74,7 @@ function AdminUsersListPage() {
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
   const [userDetailOpen, setUserDetailOpen] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   const columns = [
     { key: "id", label: "User ID" },
@@ -90,7 +91,7 @@ function AdminUsersListPage() {
       if (!response.success) {
         toast.error("Failed to fetch users");
       } else {
-        setUsers(response.data || []);
+        setUsers(response.data);
       }
     } catch (error) {
       toast.error("Failed to fetch users");
@@ -122,7 +123,7 @@ function AdminUsersListPage() {
   };
 
   const filteredAndSortedUsers = useMemo(() => {
-    let filtered = users.filter(user => {
+    let filtered = users.filter((user) => {
       const term = searchTerm.toLowerCase();
       const matchesSearch = 
         user.name?.toLowerCase().includes(term) ||
@@ -182,12 +183,12 @@ function AdminUsersListPage() {
     try {
       const subscriptionResponse = await getUserSubscriptionCount(user.id.toString());
       const subscriptionCount = subscriptionResponse.success ? subscriptionResponse.count : 0;
-      
+
       setUserToDelete({
         id: user.id.toString(),
         name: user.name || "Unknown User",
         email: user.email || "No email",
-        subscriptionCount
+        subscriptionCount,
       });
       setDeleteDialogOpen(true);
     } catch (error) {
@@ -200,9 +201,8 @@ function AdminUsersListPage() {
 
     try {
       setDeletingUserId(userToDelete.id);
-      
       const response = await deleteUserById(userToDelete.id);
-      
+
       if (response.success) {
         toast.success("User deleted successfully");
         setUsers(prev => prev.filter(user => user.id.toString() !== userToDelete.id));
@@ -220,15 +220,15 @@ function AdminUsersListPage() {
 
   const exportUsers = () => {
     const csvData = [
-      ['User ID', 'Name', 'Email', 'Status', 'Admin', 'Customer', 'Created Date'],
+      ["User ID", "Name", "Email", "Status", "Admin", "Customer", "Created Date"],
       ...filteredAndSortedUsers.map(user => [
         user.id,
-        user.name || 'N/A',
-        user.email || 'N/A',
-        user.is_active ? 'Active' : 'Inactive',
-        user.is_admin ? 'Yes' : 'No',
-        user.is_customer ? 'Yes' : 'No',
-        dayjs(user.created_at).format('YYYY-MM-DD HH:mm:ss')
+        user.name || "N/A",
+        user.email || "N/A",
+        user.is_active ? "Active" : "Inactive",
+        user.is_admin ? "Yes" : "No",
+        user.is_customer ? "Yes" : "No",
+        dayjs(user.created_at).format("YYYY-MM-DD HH:mm:ss")
       ])
     ];
     
@@ -246,7 +246,7 @@ function AdminUsersListPage() {
 
   const getStatusAndRoleBadges = (user: IUser, compact = false) => {
     const badges = [];
-    
+
     // Status badge (always first)
     if (!user.is_active) {
       badges.push(
@@ -263,7 +263,7 @@ function AdminUsersListPage() {
         </span>
       );
     }
-    
+
     // Role badges
     if (user.is_admin) {
       badges.push(
@@ -273,7 +273,7 @@ function AdminUsersListPage() {
         </span>
       );
     }
-    
+
     if (user.is_customer) {
       badges.push(
         <span key="customer" className={`inline-flex items-center px-1.5 py-0.5 text-xs rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 ${compact ? 'gap-0.5' : 'gap-1'}`}>
@@ -282,14 +282,30 @@ function AdminUsersListPage() {
         </span>
       );
     }
-    
+
     return badges;
   };
 
   const handleUserClick = (user: IUser) => {
+    setOpenDropdownId(null); // Close any open dropdown
     setSelectedUser(user);
     setUserDetailOpen(true);
   };
+
+  const handleDropdownOpenChange = (userId: string, open: boolean) => {
+    if (open) {
+      setOpenDropdownId(userId);
+    } else {
+      setOpenDropdownId(null);
+    }
+  };
+
+  // Close dropdown when dialog opens/closes
+  React.useEffect(() => {
+    if (userDetailOpen || deleteDialogOpen) {
+      setOpenDropdownId(null);
+    }
+  }, [userDetailOpen, deleteDialogOpen]);
 
   return (
     <TooltipProvider>
@@ -524,20 +540,31 @@ function AdminUsersListPage() {
 
                           {/* Actions */}
                           <div className="col-span-1 text-right">
-                            <DropdownMenu>
+                            <DropdownMenu 
+                              open={openDropdownId === user.id?.toString()}
+                              onOpenChange={(open) => handleDropdownOpenChange(user.id?.toString() || '', open)}
+                            >
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="sm">
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleUserClick(user)}>
+                                <DropdownMenuItem 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUserClick(user);
+                                  }}
+                                >
                                   <Eye className="h-4 w-4 mr-2" />
                                   View Details
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   className="text-red-600 dark:text-red-400"
-                                  onClick={() => handleDeleteUser(user)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteUser(user);
+                                  }}
                                   disabled={deletingUserId === user.id.toString()}
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
@@ -591,7 +618,15 @@ function AdminUsersListPage() {
           </div>
 
           {/* User Detail Modal for Mobile */}
-          <Dialog open={userDetailOpen} onOpenChange={setUserDetailOpen}>
+          <Dialog 
+            open={userDetailOpen} 
+            onOpenChange={(open) => {
+              setUserDetailOpen(open);
+              if (!open) {
+                setOpenDropdownId(null);
+              }
+            }}
+          >
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle className="flex items-center">
@@ -663,7 +698,15 @@ function AdminUsersListPage() {
           </Dialog>
 
           {/* Delete Confirmation Dialog */}
-          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <Dialog 
+            open={deleteDialogOpen} 
+            onOpenChange={(open) => {
+              setDeleteDialogOpen(open);
+              if (!open) {
+                setOpenDropdownId(null);
+              }
+            }}
+          >
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle className="flex items-center text-red-600 dark:text-red-400">

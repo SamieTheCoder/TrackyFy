@@ -27,7 +27,6 @@ import {
   MoreVertical,
   Activity,
   CreditCard,
-  IndianRupeeIcon
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -78,6 +77,7 @@ function AdminSubscriptions() {
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [selectedSubscription, setSelectedSubscription] = useState<ISubscription | null>(null);
   const [subscriptionDetailOpen, setSubscriptionDetailOpen] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   const columns = [
     { key: "id", label: "Subscription ID" },
@@ -339,8 +339,17 @@ function AdminSubscriptions() {
   };
 
   const handleSubscriptionClick = (subscription: ISubscription) => {
+    setOpenDropdownId(null); // Close any open dropdown
     setSelectedSubscription(subscription);
     setSubscriptionDetailOpen(true);
+  };
+
+  const handleDropdownOpenChange = (subscriptionId: string, open: boolean) => {
+    if (open) {
+      setOpenDropdownId(subscriptionId);
+    } else {
+      setOpenDropdownId(null);
+    }
   };
 
   // Get unique months for filter
@@ -356,6 +365,13 @@ function AdminSubscriptions() {
     
     return uniqueMonths.sort((a, b) => dayjs(a.value).valueOf() - dayjs(b.value).valueOf());
   }, [subscriptions]);
+
+  // Close dropdown when dialog opens/closes
+  React.useEffect(() => {
+    if (subscriptionDetailOpen) {
+      setOpenDropdownId(null);
+    }
+  }, [subscriptionDetailOpen]);
 
   return (
     <TooltipProvider>
@@ -835,14 +851,22 @@ function AdminSubscriptions() {
 
                                 {/* Actions */}
                                 <div className="col-span-1 text-right">
-                                  <DropdownMenu>
+                                  <DropdownMenu 
+                                    open={openDropdownId === subscription.id?.toString()}
+                                    onOpenChange={(open) => handleDropdownOpenChange(subscription.id?.toString() || '', open)}
+                                  >
                                     <DropdownMenuTrigger asChild>
                                       <Button variant="ghost" size="sm">
                                         <MoreVertical className="h-4 w-4" />
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => handleSubscriptionClick(subscription)}>
+                                      <DropdownMenuItem 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSubscriptionClick(subscription);
+                                        }}
+                                      >
                                         <Eye className="h-4 w-4 mr-2" />
                                         View Details
                                       </DropdownMenuItem>
@@ -900,7 +924,15 @@ function AdminSubscriptions() {
             )}
 
             {/* Subscription Detail Modal */}
-            <Dialog open={subscriptionDetailOpen} onOpenChange={setSubscriptionDetailOpen}>
+            <Dialog 
+              open={subscriptionDetailOpen} 
+              onOpenChange={(open) => {
+                setSubscriptionDetailOpen(open);
+                if (!open) {
+                  setOpenDropdownId(null);
+                }
+              }}
+            >
               <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle className="flex items-center">
