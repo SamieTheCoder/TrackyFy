@@ -22,7 +22,7 @@ import {
   Filter,
   Calendar,
   DollarSign,
-  Package,
+  CalendarSync,
   Clock,
   CheckCircle,
   XCircle,
@@ -258,7 +258,7 @@ function UserSubscriptionsPage() {
         <div className="mb-8">
           <div className="flex items-center space-x-4 mb-4">
             <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center">
-              <Package className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+              <CalendarSync className="h-6 w-6 text-slate-600 dark:text-slate-400" />
             </div>
             <div>
               <PageTitle title="My Subscriptions" />
@@ -349,7 +349,7 @@ function UserSubscriptionsPage() {
         {!subscriptions.length && !loading && (
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-12 text-center">
             <div className="mx-auto w-24 h-24 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mb-6">
-              <Package className="h-12 w-12 text-slate-400" />
+              <CalendarSync className="h-12 w-12 text-slate-400" />
             </div>
             <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
               No Subscriptions Found

@@ -28,7 +28,7 @@ export interface IPlan {
 }
 
 export interface ISubscription {
-  id: string;
+  id: string | number;
   plan_id: string;
   plan?: IPlan; // run time data
   user_id: string;
@@ -42,7 +42,9 @@ export interface ISubscription {
   created_at: string;
   is_cash_approval?: boolean; // Add this field
   payment_gateway?: string;
-  
+  coupon_id?: number | null; // Add this field
+  original_amount?: number; // Add this field
+  discount_amount?: number; // Add this field
 }
 
 export interface SubscriptionProgress {

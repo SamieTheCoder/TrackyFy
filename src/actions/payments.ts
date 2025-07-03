@@ -4,9 +4,20 @@ import Razorpay from "razorpay";
 import Stripe from "stripe";
 import { getPaymentSettings } from "./payment-settings";
 
+// Helper function to normalize amounts to avoid floating point issues
+const normalizeAmount = (amount: number): number => {
+  // Ensure the amount is properly rounded to avoid floating point issues
+  return Math.round(amount);
+};
+
 // Razorpay functions
-export const createRazorpayOrder = async (amount: number) => {
+export const createRazorpayOrder = async (amountInPaise: number) => {
   try {
+    // Ensure amount is an integer
+    const normalizedAmount = normalizeAmount(amountInPaise);
+    
+    console.log("Creating Razorpay order with amount (paise):", normalizedAmount);
+
     const settingsResponse = await getPaymentSettings();
     if (!settingsResponse.success || !settingsResponse.data) {
       throw new Error("Failed to get payment settings");
@@ -26,7 +37,7 @@ export const createRazorpayOrder = async (amount: number) => {
     });
 
     const options = {
-      amount: amount * 100,
+      amount: normalizedAmount, // amount already in paise and normalized
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
       notes: {
@@ -97,8 +108,13 @@ export const verifyRazorpayPayment = async (
 };
 
 // Stripe functions
-export const createStripePaymentIntent = async (amount: number) => {
+export const createStripePaymentIntent = async (amountInCents: number) => {
   try {
+    // Ensure amount is an integer
+    const normalizedAmount = normalizeAmount(amountInCents);
+    
+    console.log("Creating Stripe payment intent with amount (cents):", normalizedAmount);
+
     const settingsResponse = await getPaymentSettings();
     if (!settingsResponse.success || !settingsResponse.data) {
       throw new Error("Failed to get payment settings");
@@ -119,7 +135,7 @@ export const createStripePaymentIntent = async (amount: number) => {
     );
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount * 100,
+      amount: normalizedAmount, // amount already in cents and normalized
       currency: "inr",
       description: "Payment for your order",
     });

@@ -50,6 +50,17 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
 );
 
+// Helper function to ensure integer amounts for payment gateways
+const normalizeAmount = (amount: number): number => {
+  // Round to 2 decimal places and then convert to integer (paise/cents)
+  return Math.round(amount * 100);
+};
+
+// Helper function to convert back to rupees for display
+const convertToRupees = (paiseAmount: number): number => {
+  return Math.round(paiseAmount / 100);
+};
+
 function CheckoutPage() {
   const { selectedPaymentPlan } = plansGlobalStore() as IPlansGlobalStore;
   const [startDate, setStartDate] = useState(dayjs().format("YYYY-MM-DD"));
@@ -91,10 +102,12 @@ function CheckoutPage() {
     }
   }, [selectedPaymentPlan, appliedCouponValidation]);
 
-  // Add coupon handlers
+  // Add coupon handlers with proper amount normalization
   const handleCouponApplied = (validation: ICouponValidation) => {
     setAppliedCouponValidation(validation);
-    setFinalAmount(validation.finalAmount);
+    // Ensure the final amount is properly rounded to avoid floating point issues
+    const normalizedAmount = Math.round(validation.finalAmount * 100) / 100;
+    setFinalAmount(normalizedAmount);
   };
 
   const handleCouponRemoved = () => {
@@ -177,8 +190,11 @@ function CheckoutPage() {
         return;
       }
 
-      // Use finalAmount instead of original price
-      const response = await createRazorpayOrder(finalAmount);
+      // Normalize amount to paise (multiply by 100 and round)
+      const amountInPaise = normalizeAmount(finalAmount);
+      console.log("Final amount:", finalAmount, "Amount in paise:", amountInPaise);
+
+      const response = await createRazorpayOrder(amountInPaise);
 
       if (response.success && response.data) {
         const orderInfo = {
@@ -207,8 +223,11 @@ function CheckoutPage() {
     try {
       setIsProcessing(true);
 
-      // Use finalAmount instead of original price
-      const response = await createStripePaymentIntent(finalAmount);
+      // Normalize amount to cents (multiply by 100 and round)
+      const amountInCents = normalizeAmount(finalAmount);
+      console.log("Final amount:", finalAmount, "Amount in cents:", amountInCents);
+
+      const response = await createStripePaymentIntent(amountInCents);
 
       if (response.success && response.data) {
         setClientSecret(response.data);
@@ -755,8 +774,8 @@ function CheckoutPage() {
           user={user}
           startDate={startDate}
           endDate={endDate}
-          appliedCouponValidation={appliedCouponValidation} // Add this line
-          finalAmount={finalAmount} // Add this line
+          appliedCouponValidation={appliedCouponValidation}
+          finalAmount={finalAmount}
         />
 
         {/* Security & Trust Section */}

@@ -9,6 +9,7 @@ import Spinner from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { IUser } from "@/interfaces";
+import Link from "next/link";
 import { 
   Search, 
   Filter, 
@@ -25,7 +26,8 @@ import {
   MoreVertical,
   UserCheck,
   ChevronRight,
-  Activity
+  Activity,
+  ArrowLeft
 } from "lucide-react";
 import {
   Dialog,
@@ -240,6 +242,19 @@ function AdminCustomersList() {
                 <Spinner parentHeight="100%" />
               </div>
             )}
+
+            {/* Back Button */}
+          <div className="mb-4">
+            <Button 
+              variant="outline" 
+              className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              <Link href="/account" className="flex items-center">
+                <ArrowLeft size={16} className="mr-2" />
+                Back to Account
+              </Link>
+            </Button>
+          </div>
 
             {/* Header */}
             <div className="mb-8">

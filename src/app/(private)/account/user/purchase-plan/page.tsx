@@ -16,19 +16,15 @@ import {
   ArrowUpDown,  
   Crown, 
   Zap,
-  Shield,
   TrendingUp,
   ArrowLeft,
   Filter,
   Search,
-  Package,
+  FolderKanban,
   HelpCircle,
   BadgeCheck,
   IndianRupee,
-  Flame,
-  Star,
-  Users,
-  Calendar
+  Flame
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -288,7 +284,7 @@ function PurchasePlanPage() {
         <div className="mb-6">
           <div className="flex items-center space-x-3 mb-3">
             <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center">
-              <Package className="h-5 w-5 sm:h-6 sm:w-6 text-slate-600 dark:text-slate-400" />
+              <FolderKanban className="h-5 w-5 sm:h-6 sm:w-6 text-slate-600 dark:text-slate-400" />
             </div>
             <div className="flex-1 min-w-0">
               <PageTitle title="Choose Your Plan" />
@@ -384,7 +380,7 @@ function PurchasePlanPage() {
             {filteredAndSortedPlans.length === 0 && !loading && (
               <div className="text-center py-8">
                 <div className="mx-auto w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                  <Package className="h-10 w-10 text-slate-400" />
+                  <FolderKanban className="h-10 w-10 text-slate-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
                   No Plans Found

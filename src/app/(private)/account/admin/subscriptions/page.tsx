@@ -8,9 +8,11 @@ import dayjs from "dayjs";
 import Spinner from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import Link from "next/link";
 import { 
   ArrowUpDown, 
   ArrowDown, 
+  ArrowLeft,
   ArrowUp, 
   Search,
   Filter,
@@ -383,6 +385,7 @@ function AdminSubscriptions() {
                 <Spinner parentHeight="100%" />
               </div>
             )}
+            
 
             {/* Header */}
             <div className="mb-8">
@@ -398,6 +401,10 @@ function AdminSubscriptions() {
                 </div>
               </div>
             </div>
+            
+
+            
+
 
             {/* Analytics Dashboard */}
             {analyticsData && (

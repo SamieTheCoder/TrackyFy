@@ -102,13 +102,17 @@ export const getAllSubscriptions = async () => {
   try {
     const { data, error } = await supabase
       .from("subscriptions")
-      .select("* , plans(name) , user_profiles(name)");
+      .select("* , plans(name) , user_profiles(name, email), coupons(code)")
+      .order("created_at", { ascending: false });
+      
     if (error) {
       throw new Error(error.message);
     }
+    
     let formattedData = data.map((item: any) => ({
       plan: item.plans,
       user: item.user_profiles,
+      coupon: item.coupons,
       ...item,
     }));
 
@@ -122,4 +126,27 @@ export const getAllSubscriptions = async () => {
       message: error.message,
     };
   }
+};
+
+/* ---------------  delete subscription --------------- */
+export const deleteSubscription = async (subscriptionId: number) => {
+  try {
+    const { error } = await supabase
+      .from("subscriptions")
+      .delete()
+      .eq("id", subscriptionId);
+
+    if (error) throw error;
+    return { success: true, message: "Subscription removed 🗑️" };
+  } catch (e: any) {
+    return { success: false, message: e.message };
+  }
+};
+
+/* ---------------  invoice download helper --------------- */
+/* Made async to comply with Server Actions requirement */
+export const getInvoiceDownloadUrl = async (subId: number) => {
+  // In real life you would generate & store a pdf
+  // For demo we return a public URL where the invoice lives
+  return `/api/invoice/${subId}`;
 };

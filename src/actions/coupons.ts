@@ -3,9 +3,32 @@
 import { createClient } from "@/utils/supabase/server";
 import { ICoupon, ICouponValidation } from "@/interfaces";
 
+// Helper functions to ensure proper amount calculations
+const calculateDiscountAmount = (originalAmount: number, coupon: any): number => {
+  let discountAmount = 0;
+  
+  if (coupon.discount_type === 'percentage') {
+    discountAmount = (originalAmount * coupon.discount_value) / 100;
+    if (coupon.max_discount) {
+      discountAmount = Math.min(discountAmount, coupon.max_discount);
+    }
+  } else {
+    discountAmount = Math.min(coupon.discount_value, originalAmount);
+  }
+  
+  // Round to 2 decimal places to avoid floating point issues
+  return Math.round(discountAmount * 100) / 100;
+};
+
+const calculateFinalAmount = (originalAmount: number, discountAmount: number): number => {
+  const finalAmount = originalAmount - discountAmount;
+  // Ensure minimum amount and round to 2 decimal places
+  return Math.max(Math.round(finalAmount * 100) / 100, 0);
+};
+
 export async function getAllCoupons() {
   try {
-    const supabase = await createClient(); // Add await here
+    const supabase = await createClient();
     
     const { data, error } = await supabase
       .from("coupons")
@@ -28,7 +51,7 @@ export async function getAllCoupons() {
 
 export async function createCoupon(couponData: Partial<ICoupon>) {
   try {
-    const supabase = await createClient(); // Add await here
+    const supabase = await createClient();
     
     const { data, error } = await supabase
       .from("coupons")
@@ -52,7 +75,7 @@ export async function createCoupon(couponData: Partial<ICoupon>) {
 
 export async function updateCoupon(id: number, couponData: Partial<ICoupon>) {
   try {
-    const supabase = await createClient(); // Add await here
+    const supabase = await createClient();
     
     const { data, error } = await supabase
       .from("coupons")
@@ -77,7 +100,7 @@ export async function updateCoupon(id: number, couponData: Partial<ICoupon>) {
 
 export async function deleteCoupon(id: number) {
   try {
-    const supabase = await createClient(); // Add await here
+    const supabase = await createClient();
     
     const { error } = await supabase
       .from("coupons")
@@ -103,7 +126,7 @@ export async function validateCoupon(
   planId: number
 ): Promise<ICouponValidation> {
   try {
-    const supabase = await createClient(); // Add await here
+    const supabase = await createClient();
     
     // Check if coupons are enabled
     const { data: settings } = await supabase
@@ -190,18 +213,9 @@ export async function validateCoupon(
       }
     }
 
-    // Calculate discount
-    let discountAmount = 0;
-    if (coupon.discount_type === 'percentage') {
-      discountAmount = (amount * coupon.discount_value) / 100;
-      if (coupon.max_discount) {
-        discountAmount = Math.min(discountAmount, coupon.max_discount);
-      }
-    } else {
-      discountAmount = Math.min(coupon.discount_value, amount);
-    }
-
-    const finalAmount = Math.max(0, amount - discountAmount);
+    // Calculate discount using helper functions
+    const discountAmount = calculateDiscountAmount(amount, coupon);
+    const finalAmount = calculateFinalAmount(amount, discountAmount);
 
     return {
       isValid: true,
@@ -222,7 +236,7 @@ export async function validateCoupon(
 
 export async function applyCoupon(couponId: number) {
   try {
-    const supabase = await createClient(); // Add await here
+    const supabase = await createClient();
     
     // Fixed: Use rpc function for incrementing used_count
     const { data, error } = await supabase
