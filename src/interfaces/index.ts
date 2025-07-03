@@ -53,3 +53,41 @@ export interface SubscriptionProgress {
   isExpired: boolean;
   status: 'active' | 'expiring' | 'expired';
 }
+
+
+export interface ICoupon {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  code: string;
+  name: string;
+  description: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+  min_amount?: number;
+  max_discount?: number;
+  usage_limit?: number;
+  used_count: number;
+  is_active: boolean;
+  valid_from?: string; // Changed from string to string | undefined
+  valid_until?: string; // Changed from string to string | undefined
+  applicable_plans?: number[];
+  created_by?: number;
+}
+
+export interface ICouponSettings {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  is_enabled: boolean;
+  allow_stacking: boolean;
+  max_discount_percentage: number;
+}
+
+export interface ICouponValidation {
+  isValid: boolean;
+  coupon?: ICoupon;
+  discountAmount: number;
+  finalAmount: number;
+  message: string;
+}

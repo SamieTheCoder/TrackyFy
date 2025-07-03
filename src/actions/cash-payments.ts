@@ -6,6 +6,9 @@ export interface ICashPaymentRequest {
   user_id: number;
   plan_id: number;
   amount: number;
+  original_amount?: number;
+  discount_amount?: number;
+  coupon_id?: number;
   start_date: string;
   end_date: string;
   total_duration: number;
@@ -24,6 +27,9 @@ export const createCashPaymentRequest = async (payload: ICashPaymentRequest) => 
         end_date: payload.end_date,
         total_duration: payload.total_duration,
         amount: payload.amount,
+        original_amount: payload.original_amount || payload.amount,
+        discount_amount: payload.discount_amount || 0,
+        coupon_id: payload.coupon_id || null,
         payment_id: `CASH_${Date.now()}`,
         is_active: false, // Will be activated after admin approval
         is_cash_approval: false, // Pending approval
@@ -50,7 +56,12 @@ export const getAllPendingCashPayments = async () => {
   try {
     const { data, error } = await supabase
       .from("subscriptions")
-      .select("* , plans(name) , user_profiles(name, email)")
+      .select(`
+        *, 
+        plans(name), 
+        user_profiles(name, email),
+        coupons(code, name, discount_type, discount_value)
+      `)
       .eq("is_cash_approval", false)
       .eq("is_active", false)
       .like("payment_id", "CASH_%")
@@ -63,6 +74,7 @@ export const getAllPendingCashPayments = async () => {
     const formattedData = data.map((item: any) => ({
       plan: item.plans,
       user: item.user_profiles,
+      coupon: item.coupons,
       ...item,
     }));
 
@@ -80,6 +92,16 @@ export const getAllPendingCashPayments = async () => {
 
 export const approveCashPayment = async (subscriptionId: number) => {
   try {
+    // Get subscription details first to check for coupon
+    const { data: subscription, error: fetchError } = await supabase
+      .from("subscriptions")
+      .select("user_id, coupon_id")
+      .eq("id", subscriptionId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    // Update subscription status
     const { data, error } = await supabase
       .from("subscriptions")
       .update({
@@ -99,6 +121,27 @@ export const approveCashPayment = async (subscriptionId: number) => {
       id: data.user_id,
       is_customer: true,
     });
+
+    // If coupon was used, increment its usage count (FIXED: Removed .sql usage)
+    if (subscription.coupon_id) {
+      // Get current usage count
+      const { data: couponData, error: couponError } = await supabase
+        .from("coupons")
+        .select("used_count")
+        .eq("id", subscription.coupon_id)
+        .single();
+
+      if (!couponError && couponData) {
+        // Increment usage count
+        await supabase
+          .from("coupons")
+          .update({ 
+            used_count: couponData.used_count + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", subscription.coupon_id);
+      }
+    }
 
     return {
       success: true,

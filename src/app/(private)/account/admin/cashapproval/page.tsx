@@ -31,6 +31,7 @@ import {
   XCircle,
   Eye,
   MoreVertical,
+  Tag,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -57,6 +58,8 @@ interface ICashPaymentRequest {
   start_date: string;
   end_date: string;
   amount: number;
+  original_amount?: number;
+  discount_amount?: number;
   total_duration: number;
   payment_id: string;
   plan: {
@@ -65,6 +68,12 @@ interface ICashPaymentRequest {
   user: {
     name: string;
     email: string;
+  };
+  coupon?: {
+    code: string;
+    name: string;
+    discount_type: string;
+    discount_value: number;
   };
 }
 
@@ -185,7 +194,10 @@ function CashApprovalPage() {
         "Customer Name",
         "Email",
         "Plan",
-        "Amount",
+        "Original Amount",
+        "Discount",
+        "Final Amount",
+        "Coupon Code",
         "Duration",
         "Submitted Date",
       ],
@@ -194,7 +206,10 @@ function CashApprovalPage() {
         request.user?.name || "Unknown",
         request.user?.email || "No email",
         request.plan?.name || "Unknown Plan",
+        request.original_amount || request.amount,
+        request.discount_amount || 0,
         request.amount,
+        request.coupon?.code || "No coupon",
         `${request.total_duration} days`,
         dayjs(request.created_at).format("YYYY-MM-DD HH:mm:ss"),
       ]),
@@ -301,19 +316,14 @@ function CashApprovalPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                    Recent (24h)
+                    With Coupons
                   </p>
                   <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                    {
-                      requests.filter(
-                        (req) =>
-                          dayjs().diff(dayjs(req.created_at), "hours") <= 24
-                      ).length
-                    }
+                    {requests.filter((req) => req.coupon).length}
                   </p>
                 </div>
-                <div className="p-3 bg-amber-100 dark:bg-amber-900/20 rounded-lg">
-                  <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
+                  <Tag className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
             </div>
@@ -322,14 +332,17 @@ function CashApprovalPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                    High Value
+                    Total Savings
                   </p>
                   <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                    {requests.filter((req) => req.amount >= 5000).length}
+                    ₹
+                    {requests
+                      .reduce((sum, req) => sum + (req.discount_amount || 0), 0)
+                      .toLocaleString()}
                   </p>
                 </div>
-                <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                  <Package className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                <div className="p-3 bg-amber-100 dark:bg-amber-900/20 rounded-lg">
+                  <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                 </div>
               </div>
             </div>
@@ -537,10 +550,52 @@ function CashApprovalPage() {
                         </span>
                       </div>
 
+                      {/* COUPON INFORMATION SECTION */}
+                      {request.coupon && (
+                        <>
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center text-slate-600 dark:text-slate-400">
+                              <Tag className="h-4 w-4 mr-2" />
+                              <span className="text-sm">Coupon Applied</span>
+                            </div>
+                            <span className="font-medium text-green-600 dark:text-green-400 text-sm">
+                              {request.coupon.code}
+                            </span>
+                          </div>
+
+                          {request.original_amount && request.original_amount > request.amount && (
+                            <>
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center text-slate-600 dark:text-slate-400">
+                                  <IndianRupee className="h-4 w-4 mr-2" />
+                                  <span className="text-sm">Original Amount</span>
+                                </div>
+                                <span className="font-medium text-slate-500 dark:text-slate-400 text-sm line-through">
+                                  ₹{request.original_amount.toLocaleString()}
+                                </span>
+                              </div>
+
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center text-slate-600 dark:text-slate-400">
+                                  <Tag className="h-4 w-4 mr-2" />
+                                  <span className="text-sm">Discount</span>
+                                </div>
+                                <span className="font-medium text-green-600 dark:text-green-400 text-sm">
+                                  -₹{(request.discount_amount || 0).toLocaleString()}
+                                </span>
+                              </div>
+                            </>
+                          )}
+                        </>
+                      )}
+
+                      {/* UPDATED FINAL AMOUNT SECTION */}
                       <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
                         <div className="flex items-center text-slate-600 dark:text-slate-400">
                           <IndianRupee className="h-4 w-4 mr-2" />
-                          <span className="text-sm font-medium">Amount</span>
+                          <span className="text-sm font-medium">
+                            {request.coupon ? "Final Amount" : "Amount"}
+                          </span>
                         </div>
                         <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
                           ₹{request.amount.toLocaleString()}
@@ -647,6 +702,40 @@ function CashApprovalPage() {
                       {dayjs(selectedRequest.created_at).format("MMM DD, YYYY")}
                     </p>
                   </div>
+                  
+                  {/* COUPON INFORMATION IN DETAILS DIALOG */}
+                  {selectedRequest?.coupon && (
+                    <>
+                      <div>
+                        <span className="text-slate-500 dark:text-slate-400">
+                          Coupon:
+                        </span>
+                        <p className="font-medium text-green-600">
+                          {selectedRequest.coupon.code}
+                        </p>
+                      </div>
+                      {selectedRequest.original_amount && (
+                        <div>
+                          <span className="text-slate-500 dark:text-slate-400">
+                            Original Amount:
+                          </span>
+                          <p className="font-medium line-through text-slate-500">
+                            ₹{selectedRequest.original_amount.toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                      {selectedRequest.discount_amount && selectedRequest.discount_amount > 0 && (
+                        <div>
+                          <span className="text-slate-500 dark:text-slate-400">
+                            Discount:
+                          </span>
+                          <p className="font-medium text-green-600">
+                            -₹{selectedRequest.discount_amount.toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
                 <div>
                   <span className="text-slate-500 dark:text-slate-400">
@@ -703,6 +792,11 @@ function CashApprovalPage() {
                       <div className="text-sm">
                         <strong>Plan:</strong> {selectedRequest.plan?.name}
                       </div>
+                      {selectedRequest.coupon && (
+                        <div className="text-sm">
+                          <strong>Coupon:</strong> {selectedRequest.coupon.code}
+                        </div>
+                      )}
                     </div>
                     {actionType === "approve" && (
                       <div className="text-sm text-green-600 dark:text-green-400 mt-2">

@@ -16,7 +16,7 @@ import {
   List,
   LogOut,
   User2,
-  UserPlus,
+  TicketPercent,
   BanknoteArrowUp,
   CreditCard,
 } from "lucide-react";
@@ -85,6 +85,11 @@ function MenuItems({ user, openMenuItems, setOpenMenuItems }: IMenuItemsProps) {
       name: "Payment Settings",
       icon: <CreditCard size={iconSize} />,
       route: "/account/admin/payment-settings",
+    },
+    {
+      name: "Coupons Settings",
+      icon: <TicketPercent size={iconSize} />,
+      route: "/account/admin/coupons-settings",
     },
   ];
 
