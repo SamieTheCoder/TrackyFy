@@ -106,7 +106,7 @@ function AccountPage() {
       toast.loading("Generating PDF invoice...");
 
       const invoiceData = {
-        subscriptionId: currentSubscription.id,
+        subscriptionId: currentSubscription.id.toString(), // Convert to string
         planName: currentSubscription.plan?.name || "Unknown Plan",
         amount: currentSubscription.amount,
         startDate: dayjs(currentSubscription.start_date).format("MMM DD, YYYY"),
