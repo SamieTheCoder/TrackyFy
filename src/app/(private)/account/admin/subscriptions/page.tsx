@@ -1,6 +1,10 @@
 "use client";
-import React, { useState, useMemo } from "react";
-import { getAllSubscriptions } from "@/actions/subscriptions";
+
+import React, { useState, useMemo, useEffect } from "react";
+import {
+  getAllSubscriptions,
+  deleteSubscription,
+} from "@/actions/subscriptions";
 import PageTitle from "@/components/ui/page-title";
 import { ISubscription } from "@/interfaces";
 import toast from "react-hot-toast";
@@ -9,11 +13,11 @@ import Spinner from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { 
-  ArrowUpDown, 
-  ArrowDown, 
+import {
+  ArrowUpDown,
+  ArrowDown,
   ArrowLeft,
-  ArrowUp, 
+  ArrowUp,
   Search,
   Filter,
   Download,
@@ -24,27 +28,40 @@ import {
   Users,
   Package,
   Eye,
-  FileText,
   ChevronRight,
   MoreVertical,
   Activity,
   CreditCard,
+  Trash2,
+  XCircle,
+  Percent,
+  Copy,
+  Check,
+  Tag,
+  Clock,
+  AlertTriangle,
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  LineChart, 
-  Line, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell
+  Cell,
 } from "recharts";
 import {
   Dialog,
@@ -65,9 +82,55 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-type SortField = "id" | "created_at" | "user" | "start_date" | "end_date" | "plan" | "amount" | "payment_id";
+type SortField =
+  | "id"
+  | "created_at"
+  | "user"
+  | "start_date"
+  | "end_date"
+  | "plan"
+  | "amount"
+  | "payment_id";
 type SortDirection = "asc" | "desc";
 type FilterStatus = "all" | "active" | "expired" | "expiring";
+type Badge = { txt: string; color: string };
+
+const statusBadge = (s: ISubscription): Badge => {
+  const today = dayjs();
+  const daysLeft = dayjs(s.end_date).diff(today, "day");
+
+  if (daysLeft < 0)
+    return { txt: "Expired", color: "bg-red-100 text-red-600 border-red-200" };
+  if (daysLeft <= 7)
+    return {
+      txt: "Expiring",
+      color: "bg-amber-100 text-amber-600 border-amber-200",
+    };
+  return {
+    txt: "Active",
+    color: "bg-emerald-100 text-emerald-600 border-emerald-200",
+  };
+};
+
+const paymentBadge = (gateway?: string): Badge => {
+  switch (gateway) {
+    case "stripe":
+      return {
+        txt: "Stripe",
+        color: "bg-indigo-100 text-indigo-600 border-indigo-200",
+      };
+    case "cash":
+      return {
+        txt: "Cash",
+        color: "bg-gray-100 text-gray-700 border-gray-200",
+      };
+    default:
+      return {
+        txt: "Razorpay",
+        color: "bg-blue-100 text-blue-600 border-blue-200",
+      };
+  }
+};
 
 function AdminSubscriptions() {
   const [subscriptions, setSubscriptions] = useState<ISubscription[]>([]);
@@ -77,9 +140,11 @@ function AdminSubscriptions() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [selectedMonth, setSelectedMonth] = useState<string>("");
-  const [selectedSubscription, setSelectedSubscription] = useState<ISubscription | null>(null);
+  const [selectedSubscription, setSelectedSubscription] =
+    useState<ISubscription | null>(null);
   const [subscriptionDetailOpen, setSubscriptionDetailOpen] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [copiedPaymentId, setCopiedPaymentId] = useState<string | null>(null);
 
   const columns = [
     { key: "id", label: "Subscription ID" },
@@ -107,9 +172,21 @@ function AdminSubscriptions() {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     getData();
   }, []);
+
+  // Copy payment ID function
+  const copyPaymentId = async (paymentId: string) => {
+    try {
+      await navigator.clipboard.writeText(paymentId);
+      setCopiedPaymentId(paymentId);
+      toast.success("Payment ID copied to clipboard!");
+      setTimeout(() => setCopiedPaymentId(null), 2000);
+    } catch (error) {
+      toast.error("Failed to copy payment ID");
+    }
+  };
 
   // Analytics calculations
   const analyticsData = useMemo(() => {
@@ -119,31 +196,31 @@ function AdminSubscriptions() {
     const monthlyData = subscriptions.reduce((acc: any, sub) => {
       const month = dayjs(sub.created_at).format("YYYY-MM");
       const monthLabel = dayjs(sub.created_at).format("MMM YYYY");
-      
+
       if (!acc[month]) {
         acc[month] = {
           month: monthLabel,
           subscriptions: 0,
           revenue: 0,
-          customers: new Set()
+          customers: new Set(),
         };
       }
-      
+
       acc[month].subscriptions += 1;
       acc[month].revenue += sub.amount;
-      acc[month].customers.add(sub.user?.name || 'Unknown');
-      
+      acc[month].customers.add(sub.user?.name || "Unknown");
+
       return acc;
     }, {});
 
     const monthlyStats = Object.values(monthlyData).map((data: any) => ({
       ...data,
-      customers: data.customers.size
+      customers: data.customers.size,
     }));
 
     // Plan distribution
     const planData = subscriptions.reduce((acc: any, sub) => {
-      const planName = sub.plan?.name || 'Unknown Plan';
+      const planName = sub.plan?.name || "Unknown Plan";
       if (!acc[planName]) {
         acc[planName] = { name: planName, count: 0, revenue: 0 };
       }
@@ -158,12 +235,12 @@ function AdminSubscriptions() {
     const now = dayjs();
     const statusData = subscriptions.reduce((acc: any, sub) => {
       const endDate = dayjs(sub.end_date);
-      const daysRemaining = endDate.diff(now, 'day');
-      
-      let status = 'active';
-      if (daysRemaining < 0) status = 'expired';
-      else if (daysRemaining <= 7) status = 'expiring';
-      
+      const daysRemaining = endDate.diff(now, "day");
+
+      let status = "active";
+      if (daysRemaining < 0) status = "expired";
+      else if (daysRemaining <= 7) status = "expiring";
+
       acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {});
@@ -171,14 +248,24 @@ function AdminSubscriptions() {
     return {
       totalSubscriptions: subscriptions.length,
       totalRevenue: subscriptions.reduce((sum, sub) => sum + sub.amount, 0),
-      avgRevenuePerSub: subscriptions.reduce((sum, sub) => sum + sub.amount, 0) / subscriptions.length,
-      monthlyStats: monthlyStats.sort((a, b) => dayjs(a.month, "MMM YYYY").valueOf() - dayjs(b.month, "MMM YYYY").valueOf()),
+      avgRevenuePerSub:
+        subscriptions.reduce((sum, sub) => sum + sub.amount, 0) /
+        subscriptions.length,
+      monthlyStats: monthlyStats.sort(
+        (a, b) =>
+          dayjs(a.month, "MMM YYYY").valueOf() -
+          dayjs(b.month, "MMM YYYY").valueOf()
+      ),
       planStats,
       statusData: [
-        { name: 'Active', value: statusData.active || 0, color: '#10b981' },
-        { name: 'Expiring Soon', value: statusData.expiring || 0, color: '#f59e0b' },
-        { name: 'Expired', value: statusData.expired || 0, color: '#ef4444' }
-      ]
+        { name: "Active", value: statusData.active || 0, color: "#10b981" },
+        {
+          name: "Expiring Soon",
+          value: statusData.expiring || 0,
+          color: "#f59e0b",
+        },
+        { name: "Expired", value: statusData.expired || 0, color: "#ef4444" },
+      ],
     };
   }, [subscriptions]);
 
@@ -192,28 +279,32 @@ function AdminSubscriptions() {
   };
 
   const renderSortIcon = (field: string) => {
-    if (sortField !== field) return <ArrowUpDown size={14} className="ml-1 opacity-50" />;
+    if (sortField !== field)
+      return <ArrowUpDown size={14} className="ml-1 opacity-50" />;
     return sortDirection === "asc" ? (
       <ArrowUp size={14} className="ml-1 text-slate-600 dark:text-slate-400" />
     ) : (
-      <ArrowDown size={14} className="ml-1 text-slate-600 dark:text-slate-400" />
+      <ArrowDown
+        size={14}
+        className="ml-1 text-slate-600 dark:text-slate-400"
+      />
     );
   };
 
   const getSubscriptionStatus = (subscription: ISubscription) => {
     const now = dayjs();
     const endDate = dayjs(subscription.end_date);
-    const daysRemaining = endDate.diff(now, 'day');
+    const daysRemaining = endDate.diff(now, "day");
 
-    if (daysRemaining < 0) return 'expired';
-    if (daysRemaining <= 7) return 'expiring';
-    return 'active';
+    if (daysRemaining < 0) return "expired";
+    if (daysRemaining <= 7) return "expiring";
+    return "active";
   };
 
   const filteredAndSortedSubscriptions = useMemo(() => {
     let filtered = subscriptions.filter((subscription) => {
       const term = searchTerm.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         subscription.plan?.name?.toLowerCase().includes(term) ||
         subscription.user?.name?.toLowerCase().includes(term) ||
         subscription.payment_id?.toLowerCase().includes(term) ||
@@ -269,79 +360,62 @@ function AdminSubscriptions() {
         return aValue < bValue ? 1 : -1;
       }
     });
-  }, [subscriptions, sortField, sortDirection, searchTerm, filterStatus, selectedMonth]);
+  }, [
+    subscriptions,
+    sortField,
+    sortDirection,
+    searchTerm,
+    filterStatus,
+    selectedMonth,
+  ]);
 
   const exportData = () => {
     const csvData = [
-      ['Subscription ID', 'Customer', 'Plan', 'Amount', 'Start Date', 'End Date', 'Status', 'Payment ID'],
-      ...filteredAndSortedSubscriptions.map(sub => [
+      [
+        "Subscription ID",
+        "Customer",
+        "Plan",
+        "Amount",
+        "Start Date",
+        "End Date",
+        "Status",
+        "Payment ID",
+      ],
+      ...filteredAndSortedSubscriptions.map((sub) => [
         sub.id,
-        sub.user?.name || 'Unknown',
-        sub.plan?.name || 'Unknown',
+        sub.user?.name || "Unknown",
+        sub.plan?.name || "Unknown",
         sub.amount,
-        dayjs(sub.start_date).format('YYYY-MM-DD'),
-        dayjs(sub.end_date).format('YYYY-MM-DD'),
+        dayjs(sub.start_date).format("YYYY-MM-DD"),
+        dayjs(sub.end_date).format("YYYY-MM-DD"),
         getSubscriptionStatus(sub),
-        sub.payment_id
-      ])
+        sub.payment_id,
+      ]),
     ];
-    
-    const csvContent = csvData.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+
+    const csvContent = csvData.map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `subscriptions-${dayjs().format('YYYY-MM-DD')}.csv`;
+    link.download = `subscriptions-${dayjs().format("YYYY-MM-DD")}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
-  const getStatusAndTypeBadges = (subscription: ISubscription, compact = false) => {
-    const badges = [];
-    const status = getSubscriptionStatus(subscription);
-    
-    // Status badge (always first)
-    switch (status) {
-      case 'expired':
-        badges.push(
-          <span key="status" className={`inline-flex items-center px-1.5 py-0.5 text-xs rounded-full bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800 ${compact ? 'gap-0.5' : 'gap-1'}`}>
-            <Activity className={`${compact ? 'h-2 w-2' : 'h-2.5 w-2.5'}`} />
-            {!compact && "Expired"}
-          </span>
-        );
-        break;
-      case 'expiring':
-        badges.push(
-          <span key="status" className={`inline-flex items-center px-1.5 py-0.5 text-xs rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 ${compact ? 'gap-0.5' : 'gap-1'}`}>
-            <Activity className={`${compact ? 'h-2 w-2' : 'h-2.5 w-2.5'}`} />
-            {!compact && "Expiring"}
-          </span>
-        );
-        break;
-      default:
-        badges.push(
-          <span key="status" className={`inline-flex items-center px-1.5 py-0.5 text-xs rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 ${compact ? 'gap-0.5' : 'gap-1'}`}>
-            <Activity className={`${compact ? 'h-2 w-2' : 'h-2.5 w-2.5'}`} />
-            {!compact && "Active"}
-          </span>
-        );
-    }
-    
-    // Subscription badge
-    badges.push(
-      <span key="subscription" className={`inline-flex items-center px-1.5 py-0.5 text-xs rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 ${compact ? 'gap-0.5' : 'gap-1'}`}>
-        <CreditCard className={`${compact ? 'h-2 w-2' : 'h-2.5 w-2.5'}`} />
-        {!compact && "Subscription"}
-      </span>
-    );
-    
-    return badges;
+  const removeSub = async (id: string | number) => {
+    if (!confirm("Delete subscription?")) return;
+    // Convert string id to number for the API call
+    const numericId = typeof id === "string" ? parseInt(id) : id;
+    const res = await deleteSubscription(numericId);
+    toast[res.success ? "success" : "error"](res.message);
+    res.success && getData();
   };
 
   const handleSubscriptionClick = (subscription: ISubscription) => {
-    setOpenDropdownId(null); // Close any open dropdown
+    setOpenDropdownId(null);
     setSelectedSubscription(subscription);
     setSubscriptionDetailOpen(true);
   };
@@ -356,24 +430,111 @@ function AdminSubscriptions() {
 
   // Get unique months for filter
   const availableMonths = useMemo(() => {
-    const months = subscriptions.map(sub => ({
+    const months = subscriptions.map((sub) => ({
       value: dayjs(sub.created_at).format("YYYY-MM"),
-      label: dayjs(sub.created_at).format("MMM YYYY")
+      label: dayjs(sub.created_at).format("MMM YYYY"),
     }));
-    
-    const uniqueMonths = months.filter((month, index, self) => 
-      index === self.findIndex(m => m.value === month.value)
+
+    const uniqueMonths = months.filter(
+      (month, index, self) =>
+        index === self.findIndex((m) => m.value === month.value)
     );
-    
-    return uniqueMonths.sort((a, b) => dayjs(a.value).valueOf() - dayjs(b.value).valueOf());
+
+    return uniqueMonths.sort(
+      (a, b) => dayjs(a.value).valueOf() - dayjs(b.value).valueOf()
+    );
   }, [subscriptions]);
 
   // Close dropdown when dialog opens/closes
-  React.useEffect(() => {
+  useEffect(() => {
     if (subscriptionDetailOpen) {
       setOpenDropdownId(null);
     }
   }, [subscriptionDetailOpen]);
+
+  // Get status and type badges with compact option
+  const getStatusAndTypeBadges = (
+    subscription: ISubscription,
+    compact = false
+  ) => {
+    const badges = [];
+    const status = getSubscriptionStatus(subscription);
+    const hasDiscount =
+      subscription.discount_amount && subscription.discount_amount > 0;
+
+    // Status badge (always first)
+    switch (status) {
+      case "expired":
+        badges.push(
+          <span
+            key="status"
+            className={`inline-flex items-center px-1.5 py-0.5 text-xs rounded-full bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800 ${
+              compact ? "gap-0.5" : "gap-1"
+            }`}
+          >
+            <Activity className={`${compact ? "h-2 w-2" : "h-2.5 w-2.5"}`} />
+            {!compact && "Expired"}
+          </span>
+        );
+        break;
+      case "expiring":
+        badges.push(
+          <span
+            key="status"
+            className={`inline-flex items-center px-1.5 py-0.5 text-xs rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 ${
+              compact ? "gap-0.5" : "gap-1"
+            }`}
+          >
+            <Activity className={`${compact ? "h-2 w-2" : "h-2.5 w-2.5"}`} />
+            {!compact && "Expiring"}
+          </span>
+        );
+        break;
+      default:
+        badges.push(
+          <span
+            key="status"
+            className={`inline-flex items-center px-1.5 py-0.5 text-xs rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 ${
+              compact ? "gap-0.5" : "gap-1"
+            }`}
+          >
+            <Activity className={`${compact ? "h-2 w-2" : "h-2.5 w-2.5"}`} />
+            {!compact && "Active"}
+          </span>
+        );
+    }
+
+    // Payment type badge
+    const payB = paymentBadge(subscription.payment_gateway || "");
+    badges.push(
+      <span
+        key="payment"
+        className={`inline-flex items-center px-1.5 py-0.5 text-xs rounded-full border ${
+          payB.color
+        } ${compact ? "gap-0.5" : "gap-1"}`}
+      >
+        <CreditCard className={`${compact ? "h-2 w-2" : "h-2.5 w-2.5"}`} />
+        {!compact && payB.txt}
+      </span>
+    );
+
+    // No discount badge (yellow) when there's no discount
+    if (!hasDiscount) {
+      badges.push(
+        <span
+          key="no-discount"
+          className={`inline-flex items-center px-1.5 py-0.5 text-xs rounded-full bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 ${
+            compact ? "gap-0.5" : "gap-1"
+          }`}
+        >
+          <AlertTriangle className={`${compact ? "h-2 w-2" : "h-2.5 w-2.5"}`} />
+          {!compact && "No Discount"}
+        </span>
+      );
+    }
+
+    return badges;
+  };
 
   return (
     <TooltipProvider>
@@ -385,7 +546,19 @@ function AdminSubscriptions() {
                 <Spinner parentHeight="100%" />
               </div>
             )}
-            
+
+            {/* Back Button */}
+            <div className="mb-4">
+              <Button
+                variant="outline"
+                className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                <Link href="/account" className="flex items-center">
+                  <ArrowLeft size={16} className="mr-2" />
+                  Back to Account
+                </Link>
+              </Button>
+            </div>
 
             {/* Header */}
             <div className="mb-8">
@@ -401,14 +574,10 @@ function AdminSubscriptions() {
                 </div>
               </div>
             </div>
-            
-
-            
-
 
             {/* Analytics Dashboard */}
             {analyticsData && (
-              <Tabs defaultValue="overview" className="mb-8">
+              <Tabs defaultValue="subscriptions" className="mb-8">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -423,7 +592,9 @@ function AdminSubscriptions() {
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Subscriptions</p>
+                            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                              Total Subscriptions
+                            </p>
                             <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                               {analyticsData.totalSubscriptions}
                             </p>
@@ -439,7 +610,9 @@ function AdminSubscriptions() {
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Revenue</p>
+                            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                              Total Revenue
+                            </p>
                             <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                               ₹{analyticsData.totalRevenue.toLocaleString()}
                             </p>
@@ -455,9 +628,14 @@ function AdminSubscriptions() {
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Avg Revenue/Sub</p>
+                            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                              Avg Revenue/Sub
+                            </p>
                             <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                              ₹{Math.round(analyticsData.avgRevenuePerSub).toLocaleString()}
+                              ₹
+                              {Math.round(
+                                analyticsData.avgRevenuePerSub
+                              ).toLocaleString()}
                             </p>
                           </div>
                           <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
@@ -471,9 +649,13 @@ function AdminSubscriptions() {
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">This Month</p>
+                            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                              This Month
+                            </p>
                             <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                              {analyticsData.monthlyStats[analyticsData.monthlyStats.length - 1]?.subscriptions || 0}
+                              {analyticsData.monthlyStats[
+                                analyticsData.monthlyStats.length - 1
+                              ]?.subscriptions || 0}
                             </p>
                           </div>
                           <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
@@ -489,7 +671,9 @@ function AdminSubscriptions() {
                     <Card>
                       <CardHeader>
                         <CardTitle>Subscription Status</CardTitle>
-                        <CardDescription>Distribution of subscription statuses</CardDescription>
+                        <CardDescription>
+                          Distribution of subscription statuses
+                        </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="h-64">
@@ -504,9 +688,14 @@ function AdminSubscriptions() {
                                 paddingAngle={5}
                                 dataKey="value"
                               >
-                                {analyticsData.statusData.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
+                                {analyticsData.statusData.map(
+                                  (entry, index) => (
+                                    <Cell
+                                      key={`cell-${index}`}
+                                      fill={entry.color}
+                                    />
+                                  )
+                                )}
                               </Pie>
                               <Tooltip />
                             </PieChart>
@@ -518,20 +707,25 @@ function AdminSubscriptions() {
                     <Card>
                       <CardHeader>
                         <CardTitle>Monthly Trends</CardTitle>
-                        <CardDescription>Subscription growth over time</CardDescription>
+                        <CardDescription>
+                          Subscription growth over time
+                        </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="h-64">
                           <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={analyticsData.monthlyStats}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                              <CartesianGrid
+                                strokeDasharray="3 3"
+                                stroke="#e2e8f0"
+                              />
                               <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                               <YAxis tick={{ fontSize: 12 }} />
                               <Tooltip />
-                              <Line 
-                                type="monotone" 
-                                dataKey="subscriptions" 
-                                stroke="#3b82f6" 
+                              <Line
+                                type="monotone"
+                                dataKey="subscriptions"
+                                stroke="#3b82f6"
                                 strokeWidth={2}
                                 name="Subscriptions"
                               />
@@ -550,17 +744,34 @@ function AdminSubscriptions() {
                     <Card>
                       <CardHeader>
                         <CardTitle>Monthly Revenue</CardTitle>
-                        <CardDescription>Revenue trends by month</CardDescription>
+                        <CardDescription>
+                          Revenue trends by month
+                        </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="h-80">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={analyticsData.monthlyStats}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                              <CartesianGrid
+                                strokeDasharray="3 3"
+                                stroke="#e2e8f0"
+                              />
                               <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                              <YAxis tickFormatter={(value) => `₹${value}`} tick={{ fontSize: 12 }} />
-                              <Tooltip formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Revenue']} />
-                              <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                              <YAxis
+                                tickFormatter={(value) => `₹${value}`}
+                                tick={{ fontSize: 12 }}
+                              />
+                              <Tooltip
+                                formatter={(value: number) => [
+                                  `₹${value.toLocaleString()}`,
+                                  "Revenue",
+                                ]}
+                              />
+                              <Bar
+                                dataKey="revenue"
+                                fill="#10b981"
+                                radius={[4, 4, 0, 0]}
+                              />
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
@@ -571,64 +782,45 @@ function AdminSubscriptions() {
                     <Card>
                       <CardHeader>
                         <CardTitle>Plan Performance</CardTitle>
-                        <CardDescription>Subscriptions by plan type</CardDescription>
+                        <CardDescription>
+                          Subscriptions by plan type
+                        </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
-                          {analyticsData.planStats.slice(0, 5).map((plan: any, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
-                              <div>
-                                <div className="font-medium text-slate-900 dark:text-slate-100">{plan.name}</div>
-                                <div className="text-sm text-slate-500 dark:text-slate-400">{plan.count} subscriptions</div>
-                              </div>
-                              <div className="text-right">
-                                <div className="font-semibold text-slate-900 dark:text-slate-100">
-                                  ₹{plan.revenue.toLocaleString()}
+                          {analyticsData.planStats
+                            .slice(0, 5)
+                            .map((plan: any, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg"
+                              >
+                                <div>
+                                  <div className="font-medium text-slate-900 dark:text-slate-100">
+                                    {plan.name}
+                                  </div>
+                                  <div className="text-sm text-slate-500 dark:text-slate-400">
+                                    {plan.count} subscriptions
+                                  </div>
                                 </div>
-                                <div className="text-sm text-slate-500 dark:text-slate-400">
-                                  ₹{Math.round(plan.revenue / plan.count).toLocaleString()} avg
+                                <div className="text-right">
+                                  <div className="font-semibold text-slate-900 dark:text-slate-100">
+                                    ₹{plan.revenue.toLocaleString()}
+                                  </div>
+                                  <div className="text-sm text-slate-500 dark:text-slate-400">
+                                    ₹
+                                    {Math.round(
+                                      plan.revenue / plan.count
+                                    ).toLocaleString()}{" "}
+                                    avg
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
                         </div>
                       </CardContent>
                     </Card>
                   </div>
-
-                  {/* Monthly Statistics Table */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Monthly Statistics</CardTitle>
-                      <CardDescription>Detailed month-wise breakdown</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse">
-                          <thead>
-                            <tr className="bg-slate-50 dark:bg-slate-700/50">
-                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Month</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Subscriptions</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Revenue</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Customers</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Avg/Sub</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                            {analyticsData.monthlyStats.map((month: any, index) => (
-                              <tr key={index} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                                <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">{month.month}</td>
-                                <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">{month.subscriptions}</td>
-                                <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">₹{month.revenue.toLocaleString()}</td>
-                                <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">{month.customers}</td>
-                                <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">₹{Math.round(month.revenue / month.subscriptions).toLocaleString()}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </CardContent>
-                  </Card>
                 </TabsContent>
 
                 {/* Subscriptions Tab */}
@@ -652,7 +844,9 @@ function AdminSubscriptions() {
                       <div className="relative">
                         <select
                           value={filterStatus}
-                          onChange={(e) => setFilterStatus(e.target.value as FilterStatus)}
+                          onChange={(e) =>
+                            setFilterStatus(e.target.value as FilterStatus)
+                          }
                           className="w-full lg:w-40 pl-10 pr-8 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 appearance-none"
                         >
                           <option value="all">All Status</option>
@@ -688,7 +882,11 @@ function AdminSubscriptions() {
                           variant="outline"
                           size="sm"
                         >
-                          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                          <RefreshCw
+                            className={`h-4 w-4 mr-2 ${
+                              loading ? "animate-spin" : ""
+                            }`}
+                          />
                           Refresh
                         </Button>
                         <Button
@@ -702,28 +900,10 @@ function AdminSubscriptions() {
                       </div>
                     </div>
 
-                    {/* Sort Options - Hidden on mobile */}
-                    <div className="hidden md:flex flex-wrap gap-2 items-center">
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Sort by:</span>
-                      {columns.map((column) => (
-                        <button
-                          key={column.key}
-                          onClick={() => handleSort(column.key as SortField)}
-                          className={`px-3 py-1.5 text-sm rounded-lg flex items-center transition-colors ${
-                            sortField === column.key
-                              ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                              : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600"
-                          }`}
-                        >
-                          {column.label}
-                          {renderSortIcon(column.key)}
-                        </button>
-                      ))}
-                    </div>
-
                     {/* Results Summary */}
                     <div className="text-sm text-slate-600 dark:text-slate-400">
-                      Showing {filteredAndSortedSubscriptions.length} of {subscriptions.length} subscriptions
+                      Showing {filteredAndSortedSubscriptions.length} of{" "}
+                      {subscriptions.length} subscriptions
                     </div>
                   </div>
 
@@ -731,198 +911,388 @@ function AdminSubscriptions() {
                   {!subscriptions.length && !loading && (
                     <div className="p-8 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 text-center">
                       <Package className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                      <p className="text-slate-500 dark:text-slate-400">No subscriptions found in the system.</p>
+                      <p className="text-slate-500 dark:text-slate-400">
+                        No subscriptions found in the system.
+                      </p>
                     </div>
                   )}
 
                   {/* No Search Results */}
-                  {subscriptions.length > 0 && !filteredAndSortedSubscriptions.length && !loading && (
-                    <div className="p-8 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 text-center">
-                      <Search className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                      <p className="text-slate-500 dark:text-slate-400">No subscriptions match your current search and filter criteria.</p>
-                      <Button 
-                        variant="outline"
-                        onClick={() => {
-                          setSearchTerm("");
-                          setFilterStatus("all");
-                          setSelectedMonth("");
-                        }}
-                        className="mt-4"
-                      >
-                        Clear Filters
-                      </Button>
-                    </div>
-                  )}
+                  {subscriptions.length > 0 &&
+                    !filteredAndSortedSubscriptions.length &&
+                    !loading && (
+                      <div className="p-8 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 text-center">
+                        <Search className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                        <p className="text-slate-500 dark:text-slate-400">
+                          No subscriptions match your current search and filter
+                          criteria.
+                        </p>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSearchTerm("");
+                            setFilterStatus("all");
+                            setSelectedMonth("");
+                          }}
+                          className="mt-4"
+                        >
+                          Clear Filters
+                        </Button>
+                      </div>
+                    )}
 
                   {/* Subscriptions List */}
                   {filteredAndSortedSubscriptions.length > 0 && !loading && (
                     <>
-                      {/* Desktop View */}
-                      <div className="hidden md:block bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                        {/* Table Header */}
-                        <div className="bg-slate-50 dark:bg-slate-700/50 px-4 py-4 border-b border-slate-200 dark:border-slate-700">
-                          <div className="grid grid-cols-12 gap-2 items-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                            <div className="col-span-1">ID</div>
-                            <div className="col-span-2">Customer</div>
-                            <div className="col-span-2">Plan</div>
-                            <div className="col-span-2">Amount</div>
-                            <div className="col-span-2">Period</div>
-                            <div className="col-span-2">Status & Type</div>
-                            <div className="col-span-1 text-right">Actions</div>
+                      {/* Desktop View - Enhanced Table */}
+                      <div className="hidden lg:block">
+                        <Card className="overflow-hidden shadow-lg border-slate-200 dark:border-slate-700">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full text-xs sm:text-sm">
+                              <thead className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 border-b border-slate-200 dark:border-slate-600">
+                                <tr>
+                                  <th className="px-4 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                                    ID
+                                  </th>
+                                  <th className="px-4 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                                    Customer
+                                  </th>
+                                  <th className="px-4 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                                    Plan
+                                  </th>
+                                  <th className="px-4 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                                    Amount
+                                  </th>
+                                  <th className="px-4 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                                    Period
+                                  </th>
+                                  <th className="px-4 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                                    Status
+                                  </th>
+                                  <th className="px-4 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                                    Payment ID
+                                  </th>
+                                  <th className="px-4 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                                    Actions
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
+                                {filteredAndSortedSubscriptions.map((s) => {
+                                  const statusB = statusBadge(s);
+                                  const payB = paymentBadge(
+                                    s.payment_gateway || ""
+                                  );
+                                  const hasDiscount =
+                                    s.discount_amount && s.discount_amount > 0;
+
+                                  return (
+                                    <tr
+                                      key={s.id}
+                                      className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-all duration-200"
+                                    >
+                                      {/* ID */}
+                                      <td className="px-4 py-4">
+                                        <div className="text-xs font-mono text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-md border">
+                                          #{s.id}
+                                        </div>
+                                      </td>
+
+                                      {/* Customer */}
+                                      <td className="px-4 py-4">
+                                        <div className="flex items-center">
+                                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mr-3">
+                                            <span className="text-xs font-semibold text-white">
+                                              {s.user?.name
+                                                ?.charAt(0)
+                                                ?.toUpperCase() || "?"}
+                                            </span>
+                                          </div>
+                                          <div className="min-w-0 flex-1">
+                                            <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                                              {s.user?.name || "Unknown User"}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </td>
+
+                                      {/* Plan */}
+                                      <td className="px-4 py-4">
+                                        <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                                          {s.plan?.name || "—"}
+                                        </div>
+                                      </td>
+
+                                      {/* Amount */}
+                                      <td className="px-4 py-4">
+                                        <div className="space-y-1">
+                                          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                            ₹{s.amount.toLocaleString()}
+                                          </div>
+                                          {hasDiscount ? (
+                                            <div className="flex items-center space-x-1">
+                                              <Tag className="h-3 w-3 text-green-600" />
+                                              <span className="text-xs text-green-600 font-medium">
+                                                -₹
+                                                {s.discount_amount?.toLocaleString()}
+                                              </span>
+                                            </div>
+                                          ) : (
+                                            <div className="flex items-center space-x-1">
+                                              <AlertTriangle className="h-3 w-3 text-yellow-600" />
+                                              <span className="text-xs text-yellow-600 font-medium">
+                                                No Discount
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </td>
+
+                                      {/* Period */}
+                                      <td className="px-4 py-4">
+                                        <div className="space-y-1">
+                                          <div className="text-xs text-slate-600 dark:text-slate-400">
+                                            <span className="font-medium">
+                                              Start:
+                                            </span>{" "}
+                                            {dayjs(s.start_date).format(
+                                              "DD MMM YY"
+                                            )}
+                                          </div>
+                                          <div className="text-xs text-slate-600 dark:text-slate-400">
+                                            <span className="font-medium">
+                                              End:
+                                            </span>{" "}
+                                            {dayjs(s.end_date).format(
+                                              "DD MMM YY"
+                                            )}
+                                          </div>
+                                        </div>
+                                      </td>
+
+                                      {/* Status */}
+                                      <td className="px-4 py-4">
+                                        <div className="flex flex-wrap gap-1">
+                                          {getStatusAndTypeBadges(s)}
+                                        </div>
+                                      </td>
+
+                                      {/* Payment ID */}
+                                      <td className="px-4 py-4">
+                                        <div className="flex items-center space-x-2">
+                                          <div className="flex-1 min-w-0">
+                                            <div className="text-xs font-mono bg-slate-100 dark:bg-slate-700 px-3 py-2 rounded-md border truncate">
+                                              {s.payment_id || "—"}
+                                            </div>
+                                          </div>
+                                          {s.payment_id && (
+                                            <TooltipComponent>
+                                              <TooltipTrigger asChild>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="h-8 w-8 p-0 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-md"
+                                                  onClick={() =>
+                                                    copyPaymentId(
+                                                      s.payment_id || ""
+                                                    )
+                                                  }
+                                                >
+                                                  {copiedPaymentId ===
+                                                  s.payment_id ? (
+                                                    <Check className="h-3 w-3 text-green-600" />
+                                                  ) : (
+                                                    <Copy className="h-3 w-3 text-slate-500" />
+                                                  )}
+                                                </Button>
+                                              </TooltipTrigger>
+                                              <TooltipContent>
+                                                <p>Copy Payment ID</p>
+                                              </TooltipContent>
+                                            </TooltipComponent>
+                                          )}
+                                        </div>
+                                      </td>
+
+                                      {/* Actions */}
+                                      <td className="px-4 py-4">
+                                        <DropdownMenu
+                                          open={
+                                            openDropdownId === s.id?.toString()
+                                          }
+                                          onOpenChange={(open) =>
+                                            handleDropdownOpenChange(
+                                              s.id?.toString() || "",
+                                              open
+                                            )
+                                          }
+                                        >
+                                          <DropdownMenuTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-7 w-7 p-0 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-md"
+                                            >
+                                              <MoreVertical className="h-3 w-3" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent
+                                            align="end"
+                                            className="w-36"
+                                          >
+                                            <DropdownMenuItem
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleSubscriptionClick(s);
+                                              }}
+                                              className="text-xs"
+                                            >
+                                              <Eye className="h-3 w-3 mr-2" />
+                                              View Details
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              onClick={() => removeSub(s.id)}
+                                              className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                                            >
+                                              <Trash2 className="h-3 w-3 mr-2" />
+                                              Delete
+                                            </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
                           </div>
-                        </div>
-
-                        {/* Table Body */}
-                        <div className="divide-y divide-slate-200 dark:divide-slate-700">
-                          {filteredAndSortedSubscriptions.map((subscription) => (
-                            <div
-                              key={subscription.id}
-                              className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                            >
-                              <div className="grid grid-cols-12 gap-2 items-center">
-                                {/* ID */}
-                                <div className="col-span-1">
-                                  <span className="text-sm font-mono text-slate-900 dark:text-slate-100">
-                                    {subscription.id}
-                                  </span>
-                                </div>
-
-                                {/* Customer */}
-                                <div className="col-span-2">
-                                  <TooltipComponent>
-                                    <TooltipTrigger asChild>
-                                      <div className="flex items-center cursor-pointer">
-                                        <Users className="h-3 w-3 text-slate-400 mr-2 flex-shrink-0" />
-                                        <span className="text-sm text-slate-900 dark:text-slate-100 truncate">
-                                          {subscription.user?.name || "Unknown Customer"}
-                                        </span>
-                                      </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <div className="space-y-1">
-                                        <p className="font-medium">{subscription.user?.name || "Unknown Customer"}</p>
-                                        <p className="text-xs opacity-75">Email: {subscription.user?.email || "N/A"}</p>
-                                      </div>
-                                    </TooltipContent>
-                                  </TooltipComponent>
-                                </div>
-
-                                {/* Plan */}
-                                <div className="col-span-2">
-                                  <TooltipComponent>
-                                    <TooltipTrigger asChild>
-                                      <div className="flex items-center cursor-pointer">
-                                        <Package className="h-3 w-3 text-slate-400 mr-2 flex-shrink-0" />
-                                        <span className="text-sm text-slate-900 dark:text-slate-100 truncate">
-                                          {subscription.plan?.name || "Unknown Plan"}
-                                        </span>
-                                      </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>{subscription.plan?.name || "Unknown Plan"}</p>
-                                    </TooltipContent>
-                                  </TooltipComponent>
-                                </div>
-
-                                {/* Amount */}
-                                <div className="col-span-2">
-                                  <div className="flex items-center">
-                                    <IndianRupee className="h-3 w-3 text-slate-400 mr-2" />
-                                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                                      ₹{subscription.amount.toLocaleString()}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Period */}
-                                <div className="col-span-2">
-                                  <div className="flex items-center">
-                                    <Calendar className="h-3 w-3 text-slate-400 mr-2" />
-                                    <div>
-                                      <p className="text-sm text-slate-900 dark:text-slate-100">
-                                        {dayjs(subscription.start_date).format("MMM DD")} - {dayjs(subscription.end_date).format("MMM DD, YYYY")}
-                                      </p>
-                                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                                        Purchased {dayjs(subscription.created_at).format("MMM DD, YYYY")}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Status & Type */}
-                                <div className="col-span-2">
-                                  <div className="flex flex-wrap gap-1">
-                                    {getStatusAndTypeBadges(subscription)}
-                                  </div>
-                                </div>
-
-                                {/* Actions */}
-                                <div className="col-span-1 text-right">
-                                  <DropdownMenu 
-                                    open={openDropdownId === subscription.id?.toString()}
-                                    onOpenChange={(open) => handleDropdownOpenChange(subscription.id?.toString() || '', open)}
-                                  >
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm">
-                                        <MoreVertical className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem 
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleSubscriptionClick(subscription);
-                                        }}
-                                      >
-                                        <Eye className="h-4 w-4 mr-2" />
-                                        View Details
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem>
-                                        <FileText className="h-4 w-4 mr-2" />
-                                        Download Invoice
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                        </Card>
                       </div>
 
-                      {/* Mobile View */}
-                      <div className="md:hidden space-y-3">
-                        {filteredAndSortedSubscriptions.map((subscription) => (
-                          <div
-                            key={subscription.id}
-                            className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                            onClick={() => handleSubscriptionClick(subscription)}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-3 flex-1 min-w-0">
-                                <div className="flex-shrink-0">
-                                  <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                                    <Package className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                      {/* Mobile View - Optimized Card Layout */}
+                      <div className="lg:hidden space-y-3">
+                        {filteredAndSortedSubscriptions.map((subscription) => {
+                          const hasDiscount =
+                            subscription.discount_amount &&
+                            subscription.discount_amount > 0;
+
+                          return (
+                            <div
+                              key={subscription.id}
+                              className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                              onClick={() =>
+                                handleSubscriptionClick(subscription)
+                              }
+                            >
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                                  <div className="flex-shrink-0">
+                                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                      <span className="text-sm font-bold text-white">
+                                        {subscription.user?.name
+                                          ?.charAt(0)
+                                          ?.toUpperCase() || "?"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                                      {subscription.plan?.name ||
+                                        "Unknown Plan"}
+                                    </p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                      {subscription.user?.name ||
+                                        `Subscription #${subscription.id}`}
+                                    </p>
                                   </div>
                                 </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                                    {subscription.plan?.name || "Unknown Plan"}
-                                  </p>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                                    {subscription.user?.name || `Subscription #${subscription.id}`}
-                                  </p>
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  <div className="flex flex-wrap gap-1">
+                                    {getStatusAndTypeBadges(subscription, true)}
+                                  </div>
+                                  <ChevronRight className="h-4 w-4 text-slate-400 ml-1" />
                                 </div>
                               </div>
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                <div className="flex flex-wrap gap-1">
-                                  {getStatusAndTypeBadges(subscription, true)}
+
+                              {/* Amount and Period */}
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center space-x-2">
+                                  <IndianRupee className="h-4 w-4 text-slate-400" />
+                                  <div>
+                                    <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                                      ₹{subscription.amount.toLocaleString()}
+                                    </span>
+                                    {hasDiscount ? (
+                                      <div className="flex items-center space-x-1 mt-1">
+                                        <Tag className="h-3 w-3 text-green-600" />
+                                        <span className="text-xs text-green-600 font-medium">
+                                          -₹
+                                          {subscription.discount_amount?.toLocaleString()}
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center space-x-1 mt-1">
+                                        <AlertTriangle className="h-3 w-3 text-yellow-600" />
+                                        <span className="text-xs text-yellow-600 font-medium">
+                                          No Discount
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                                <ChevronRight className="h-4 w-4 text-slate-400 ml-1" />
+                                <div className="text-right">
+                                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                                    {dayjs(subscription.start_date).format(
+                                      "MMM DD"
+                                    )}{" "}
+                                    -{" "}
+                                    {dayjs(subscription.end_date).format(
+                                      "MMM DD, YY"
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-slate-400">
+                                    Purchased{" "}
+                                    {dayjs(subscription.created_at).format(
+                                      "MMM DD, YY"
+                                    )}
+                                  </div>
+                                </div>
                               </div>
+
+                              {/* Payment ID */}
+                              {subscription.payment_id && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                                    Payment ID:
+                                  </span>
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-xs font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded border max-w-24 truncate">
+                                      {subscription.payment_id}
+                                    </span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        copyPaymentId(
+                                          subscription.payment_id || ""
+                                        );
+                                      }}
+                                    >
+                                      {copiedPaymentId ===
+                                      subscription.payment_id ? (
+                                        <Check className="h-3 w-3 text-green-600" />
+                                      ) : (
+                                        <Copy className="h-3 w-3" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </>
                   )}
@@ -930,9 +1300,9 @@ function AdminSubscriptions() {
               </Tabs>
             )}
 
-            {/* Subscription Detail Modal */}
-            <Dialog 
-              open={subscriptionDetailOpen} 
+            {/* Compact Subscription Detail Modal */}
+            <Dialog
+              open={subscriptionDetailOpen}
               onOpenChange={(open) => {
                 setSubscriptionDetailOpen(open);
                 if (!open) {
@@ -940,67 +1310,123 @@ function AdminSubscriptions() {
                 }
               }}
             >
-              <DialogContent className="max-w-md">
+              <DialogContent className="max-w-sm">
                 <DialogHeader>
-                  <DialogTitle className="flex items-center">
-                    <Package className="h-5 w-5 mr-2" />
+                  <DialogTitle className="flex items-center text-base">
+                    <Package className="h-4 w-4 mr-2" />
                     Subscription Details
                   </DialogTitle>
                 </DialogHeader>
                 {selectedSubscription && (
                   <div className="space-y-4">
                     <div className="flex items-center space-x-3">
-                      <div className="h-12 w-12 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                        <Package className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <span className="text-sm font-bold text-white">
+                          {selectedSubscription.user?.name
+                            ?.charAt(0)
+                            ?.toUpperCase() || "?"}
+                        </span>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-slate-900 dark:text-slate-100">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm truncate">
                           {selectedSubscription.plan?.name || "Unknown Plan"}
                         </p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                          Subscription #{selectedSubscription.id}
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          #{selectedSubscription.id}
                         </p>
                       </div>
                     </div>
 
                     <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <Users className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm">{selectedSubscription.user?.name || "Unknown Customer"}</span>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <IndianRupee className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-medium">₹{selectedSubscription.amount.toLocaleString()}</span>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm">
-                          {dayjs(selectedSubscription.start_date).format("MMM DD, YYYY")} - {dayjs(selectedSubscription.end_date).format("MMM DD, YYYY")}
+                      <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <Users className="h-3 w-3 text-slate-400" />
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                            Customer
+                          </span>
+                        </div>
+                        <span className="text-sm text-slate-900 dark:text-slate-100">
+                          {selectedSubscription.user?.name ||
+                            "Unknown Customer"}
                         </span>
                       </div>
 
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium">Status & Type:</span>
+                      <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <IndianRupee className="h-3 w-3 text-slate-400" />
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                            Amount
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                            ₹{selectedSubscription.amount.toLocaleString()}
+                          </span>
+                          {selectedSubscription.discount_amount &&
+                          selectedSubscription.discount_amount > 0 ? (
+                            <div className="flex items-center space-x-1">
+                              <Tag className="h-3 w-3 text-green-600" />
+                              <span className="text-xs text-green-600 font-medium">
+                                Discount: -₹
+                                {selectedSubscription.discount_amount.toLocaleString()}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-1">
+                              <AlertTriangle className="h-3 w-3 text-yellow-600" />
+                              <span className="text-xs text-yellow-600 font-medium">
+                                No Discount Applied
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <Calendar className="h-3 w-3 text-slate-400" />
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                            Duration
+                          </span>
+                        </div>
+                        <span className="text-sm text-slate-900 dark:text-slate-100">
+                          {dayjs(selectedSubscription.start_date).format(
+                            "MMM DD, YY"
+                          )}{" "}
+                          -{" "}
+                          {dayjs(selectedSubscription.end_date).format(
+                            "MMM DD, YY"
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <Activity className="h-3 w-3 text-slate-400" />
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                            Status & Payment
+                          </span>
+                        </div>
                         <div className="flex flex-wrap gap-1">
                           {getStatusAndTypeBadges(selectedSubscription)}
                         </div>
                       </div>
+                    </div>
 
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium">Payment ID:</span>
-                        <span className="text-xs font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
-                          {selectedSubscription.payment_id}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium">Purchased:</span>
-                        <span className="text-sm text-slate-600 dark:text-slate-400">
-                          {dayjs(selectedSubscription.created_at).format("MMM DD, YYYY")}
-                        </span>
-                      </div>
+                    {/* Action Button */}
+                    <div className="pt-3 border-t border-slate-200 dark:border-slate-600">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          setSubscriptionDetailOpen(false);
+                          removeSub(selectedSubscription.id);
+                        }}
+                        className="w-full"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Subscription
+                      </Button>
                     </div>
                   </div>
                 )}

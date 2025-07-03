@@ -3,36 +3,46 @@ import React, { useState, useMemo } from "react";
 import { IPlan } from "@/interfaces";
 import dayjs from "dayjs";
 import { Button } from "@/components/ui/button";
-import { 
-  Edit2, 
-  Trash2, 
-  ArrowUpDown, 
-  ArrowDown, 
-  ArrowUp, 
-  Plus, 
+import Link from "next/link";
+import {
+  Edit2,
+  Trash2,
+  ArrowUpDown,
+  ArrowDown,
+  ArrowUp,
+  Plus,
   Search,
   Crown,
   Package,
   BadgeCheck,
   Flame,
   IndianRupee,
-  Dot,
-  Check
+  ArrowLeft,
+  Check,
+  Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Spinner from "@/components/ui/spinner";
 import toast from "react-hot-toast";
 import { deletePlanById } from "@/actions/plans";
 import { Input } from "@/components/ui/input";
 import PageTitle from "@/components/ui/page-title";
 
-type SortField = "name" | "monthly_price" | "quarterly_price" | "half_yearly_price" | "yearly_price" | "created_at" | "popular";
+type SortField =
+  | "name"
+  | "monthly_price"
+  | "quarterly_price"
+  | "half_yearly_price"
+  | "yearly_price"
+  | "created_at"
+  | "popular";
 type SortDirection = "asc" | "desc";
 
 function PlansTable({ plans }: { plans: IPlan[] }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
+  const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
+  const [addingPlan, setAddingPlan] = useState(false);
   const [sortField, setSortField] = useState<SortField>("monthly_price");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [searchQuery, setSearchQuery] = useState("");
@@ -49,15 +59,15 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
 
   const filteredAndSortedPlans = useMemo(() => {
     // First filter plans by search query
-    const filtered = plans.filter(plan => 
+    const filtered = plans.filter((plan) =>
       plan.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-    
+
     // Then sort the filtered plans
     return [...filtered].sort((a, b) => {
       if (sortField === "name") {
-        return sortDirection === "asc" 
-          ? a.name.localeCompare(b.name) 
+        return sortDirection === "asc"
+          ? a.name.localeCompare(b.name)
           : b.name.localeCompare(a.name);
       } else if (sortField === "created_at") {
         return sortDirection === "asc"
@@ -84,6 +94,32 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
     }
   };
 
+  const handleEdit = async (planId: string) => {
+    try {
+      setEditingPlanId(planId);
+      // Add a small delay to show loading state
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      router.push(`/account/admin/plans/edit/${planId}`);
+    } catch (error) {
+      toast.error("Failed to navigate to edit page");
+    } finally {
+      setEditingPlanId(null);
+    }
+  };
+
+  const handleAddPlan = async () => {
+    try {
+      setAddingPlan(true);
+      // Add a small delay to show loading state
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      router.push("/account/admin/plans/add");
+    } catch (error) {
+      toast.error("Failed to navigate to add plan page");
+    } finally {
+      setAddingPlan(false);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     try {
       setLoading(true);
@@ -106,7 +142,8 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
   };
 
   const renderSortIcon = (field: string) => {
-    if (sortField !== field) return <ArrowUpDown size={14} className="ml-1 opacity-50" />;
+    if (sortField !== field)
+      return <ArrowUpDown size={14} className="ml-1 opacity-50" />;
     return sortDirection === "asc" ? (
       <ArrowUp size={14} className="ml-1 text-orange-500" />
     ) : (
@@ -125,11 +162,29 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
       <div className="container mx-auto px-4 py-8">
         <div className="relative">
           {loading && (
-            <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/70 z-20 backdrop-blur-sm rounded-xl">
-              <Spinner parentHeight="100%" />
+            <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/70 z-20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+              <div className="flex items-center space-x-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-lg">
+                <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Processing...
+                </span>
+              </div>
             </div>
           )}
-          
+          {/* Back Button */}
+          <div className="mb-4">
+            <Button
+              variant="outline"
+              className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              
+            >
+              <Link href="/account" className="flex items-center">
+                <ArrowLeft size={16} className="mr-2" />
+                Back to Account
+              </Link>
+            </Button>
+          </div>
+
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center space-x-3 mb-4">
@@ -161,7 +216,9 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
 
               {/* Sort Options */}
               <div className="flex flex-wrap gap-2 items-center">
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Sort by:</span>
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Sort by:
+                </span>
                 {columns.map((column) => (
                   <button
                     key={column.key}
@@ -179,12 +236,22 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
               </div>
 
               {/* Add New Button */}
-              <Button 
-                onClick={() => router.push('/account/admin/plans/add')}
-                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white flex items-center justify-center"
-                disabled={loading}
+              <Button
+                onClick={handleAddPlan}
+                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white flex items-center justify-center min-w-[140px]"
+                disabled={addingPlan || loading}
               >
-                <Plus size={16} className="mr-2" /> Add New Plan
+                {addingPlan ? (
+                  <>
+                    <Loader2 size={16} className="mr-2 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <Plus size={16} className="mr-2" />
+                    Add New Plan
+                  </>
+                )}
               </Button>
             </div>
 
@@ -202,27 +269,37 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
                 No Plans Found
               </h3>
               <p className="text-slate-500 dark:text-slate-400 mb-4">
-                {searchQuery 
-                  ? `No plans match "${searchQuery}"` 
+                {searchQuery
+                  ? `No plans match "${searchQuery}"`
                   : "Create your first subscription plan to get started"}
               </p>
-              <Button 
-                onClick={() => router.push('/account/admin/plans/add')}
-                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
+              <Button
+                onClick={handleAddPlan}
+                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 min-w-[140px]"
+                disabled={addingPlan}
               >
-                <Plus size={16} className="mr-2" /> Create New Plan
+                {addingPlan ? (
+                  <>
+                    <Loader2 size={16} className="mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus size={16} className="mr-2" />
+                    Create New Plan
+                  </>
+                )}
               </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredAndSortedPlans.map((plan) => (
-                <div 
+                <div
                   key={plan.id}
                   className={`relative bg-white dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-slate-200 dark:border-slate-700 ${
                     deletingPlanId === plan.id ? "opacity-50" : ""
                   }`}
                 >
-                  
                   {/* Popular Badge */}
                   {plan.popular && (
                     <div className="absolute top-4 right-4 z-10">
@@ -248,31 +325,35 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
                         </p>
                       </div>
                       <div className="flex gap-2">
-                        <Button 
-                          onClick={() => router.push(`/account/admin/plans/edit/${plan.id}`)}
+                        <Button
+                          onClick={() => handleEdit(plan.id)}
                           variant="ghost"
                           size="icon"
-                          className="text-slate-600 dark:text-slate-400 hover:text-orange-500"
-                          disabled={loading}
+                          className="text-slate-600 dark:text-slate-400 hover:text-orange-500 min-w-[40px]"
+                          disabled={loading || editingPlanId === plan.id}
                         >
-                          <Edit2 size={16} />
+                          {editingPlanId === plan.id ? (
+                            <Loader2 size={16} className="animate-spin" />
+                          ) : (
+                            <Edit2 size={16} />
+                          )}
                         </Button>
-                        <Button 
+                        <Button
                           onClick={() => handleDelete(plan.id)}
                           variant="ghost"
                           size="icon"
-                          className="text-slate-600 dark:text-slate-400 hover:text-red-500"
+                          className="text-slate-600 dark:text-slate-400 hover:text-red-500 min-w-[40px]"
                           disabled={loading}
                         >
                           {loading && deletingPlanId === plan.id ? (
-                            <Spinner parentHeight={16} />
+                            <Loader2 size={16} className="animate-spin" />
                           ) : (
                             <Trash2 size={16} />
                           )}
                         </Button>
                       </div>
                     </div>
-                    
+
                     {/* Pricing Cards */}
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4 border border-slate-200 dark:border-slate-600">
@@ -284,7 +365,7 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
                           ₹{plan.monthly_price}
                         </div>
                       </div>
-                      
+
                       <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4 border border-slate-200 dark:border-slate-600">
                         <div className="flex items-center text-slate-600 dark:text-slate-400 mb-1">
                           <IndianRupee className="h-4 w-4 mr-1" />
@@ -294,7 +375,7 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
                           ₹{plan.quarterly_price}
                         </div>
                       </div>
-                      
+
                       <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4 border border-slate-200 dark:border-slate-600">
                         <div className="flex items-center text-slate-600 dark:text-slate-400 mb-1">
                           <IndianRupee className="h-4 w-4 mr-1" />
@@ -304,7 +385,7 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
                           ₹{plan.half_yearly_price}
                         </div>
                       </div>
-                      
+
                       <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
                         <div className="flex items-center text-orange-700 dark:text-orange-400 mb-1">
                           <IndianRupee className="h-4 w-4 mr-1" />
@@ -318,7 +399,7 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Features */}
                     <div className="mb-6">
                       <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-2 flex items-center">
@@ -327,7 +408,10 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
                       </h4>
                       <div className="grid grid-cols-2 gap-2">
                         {plan.features.slice(0, 4).map((feature, index) => (
-                          <div key={index} className="flex items-center text-sm text-slate-600 dark:text-slate-400">
+                          <div
+                            key={index}
+                            className="flex items-center text-sm text-slate-600 dark:text-slate-400"
+                          >
                             <Check className="h-3 w-3 text-green-500 mr-2 flex-shrink-0" />
                             <span className="truncate">{feature}</span>
                           </div>
@@ -339,17 +423,19 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
                         )}
                       </div>
                     </div>
-                    
+
                     {/* Footer */}
                     <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
                       <div className="text-xs text-slate-500 dark:text-slate-400">
                         Created {dayjs(plan.created_at).format("MMM DD, YYYY")}
                       </div>
-                      <div className={`text-xs px-2 py-1 rounded-full ${
-                        plan.is_active 
-                          ? "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400" 
-                          : "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400"
-                      }`}>
+                      <div
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          plan.is_active
+                            ? "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400"
+                            : "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400"
+                        }`}
+                      >
                         {plan.is_active ? "Active" : "Inactive"}
                       </div>
                     </div>

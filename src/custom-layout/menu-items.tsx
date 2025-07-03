@@ -13,7 +13,7 @@ import {
   CalendarSync,
   FolderKanban,
   Home,
-  List,
+  UserRoundCheck,
   LogOut,
   User2,
   TicketPercent,
@@ -73,7 +73,7 @@ function MenuItems({ user, openMenuItems, setOpenMenuItems }: IMenuItemsProps) {
     },
     {
       name: "Customers",
-      icon: <List size={iconSize} />,
+      icon: <UserRoundCheck size={iconSize} />,
       route: "/account/admin/customers",
     },
     {
