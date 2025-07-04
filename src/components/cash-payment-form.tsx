@@ -87,7 +87,7 @@ function CashPaymentForm({
 
   return (
     <Dialog open={showCashForm} onOpenChange={setShowCashForm}>
-      <DialogContent className="max-w-md p-0 overflow-hidden rounded-xl">
+            <DialogContent className="w-[95vw] max-w-[400px] sm:max-w-md p-0 overflow-hidden rounded-xl sm:rounded-2xl max-h-[95vh] overflow-y-auto">
         {/* Header */}
         <div
           className={`p-6 border-b border-gray-100 bg-gradient-to-r ${colorScheme.gradient} text-white rounded-t-xl`}
@@ -102,8 +102,8 @@ function CashPaymentForm({
         </div>
 
         {/* Details Card */}
-        <div className="p-6 space-y-4 bg-white dark:bg-slate-900">
-          <div className="grid grid-cols-1 gap-3">
+        <div className="p-6 space-y-5 bg-white dark:bg-slate-900">
+          <div className="grid grid-cols-1 gap-0">
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
               <div className="flex items-center text-gray-700 dark:text-gray-300">
                 <User className="h-4 w-4 mr-2" />

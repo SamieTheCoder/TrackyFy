@@ -20,6 +20,8 @@ import {
   ArrowLeft,
   Check,
   Loader2,
+  FolderKanban,
+  Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -157,9 +159,30 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
     return Math.round(((monthlyCost - yearlyCost) / monthlyCost) * 100);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 flex items-center justify-center animate-pulse">
+              <FolderKanban className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+            </div>
+            <div>
+              <div className="h-6 w-48 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+              <div className="h-4 w-32 bg-slate-100 dark:bg-slate-800 rounded mt-2 animate-pulse"></div>
+            </div>
+          </div>
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-200 border-t-orange-600"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
         <div className="relative">
           {loading && (
             <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/70 z-20 backdrop-blur-sm rounded-xl flex items-center justify-center">
@@ -171,31 +194,43 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
               </div>
             </div>
           )}
-          {/* Back Button */}
-          <div className="mb-4">
-            <Button
-              variant="outline"
-              className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-              
-            >
-              <Link href="/account" className="flex items-center">
-                <ArrowLeft size={16} className="mr-2" />
-                Back to Account
-              </Link>
-            </Button>
-          </div>
 
-          {/* Header */}
+          {/* Enhanced Header Section */}
           <div className="mb-8">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center">
-                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-slate-600 dark:text-slate-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <PageTitle title="Subscription Plans" />
-                <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm sm:text-base">
-                  Manage and configure all available subscription plans
-                </p>
+            {/* Navigation */}
+            <div className="mb-6">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="group border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+              >
+                <Link href="/account" className="flex items-center">
+                  <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform duration-200" />
+                  <span className="hidden sm:inline">Back to Dashboard</span>
+                  <span className="sm:hidden">Back</span>
+                </Link>
+              </Button>
+            </div>
+
+            {/* Title Section */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200 to-orange-300 dark:from-orange-900/30 dark:via-orange-800/30 dark:to-orange-700/30 border-2 border-orange-200 dark:border-orange-800 flex items-center justify-center shadow-lg">
+                    <FolderKanban className="h-7 w-7 sm:h-8 sm:w-8 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 h-5 w-5 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                    <Sparkles className="h-3 w-3 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 dark:from-slate-100 dark:via-slate-200 dark:to-slate-300 bg-clip-text text-transparent">
+                    Subscription Plans
+                  </h1>
+                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-1 font-medium">
+                    Manage and configure all available subscription plans
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -264,7 +299,7 @@ function PlansTable({ plans }: { plans: IPlan[] }) {
           {/* Plans Grid */}
           {filteredAndSortedPlans.length === 0 ? (
             <div className="p-8 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 text-center">
-              <Search className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+              <FolderKanban className="h-12 w-12 text-slate-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
                 No Plans Found
               </h3>

@@ -30,7 +30,11 @@ interface CouponFormProps {
   onCancel: () => void;
 }
 
-export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormProps) {
+export default function CouponForm({
+  coupon,
+  onSuccess,
+  onCancel,
+}: CouponFormProps) {
   const [formData, setFormData] = useState({
     code: "",
     name: "",
@@ -45,7 +49,7 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
     valid_until: "",
     applicable_plans: [] as number[],
   });
-  
+
   // Fixed: Properly typed plans state
   const [plans, setPlans] = useState<IPlan[]>([]);
   const [saving, setSaving] = useState(false);
@@ -62,8 +66,8 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
         max_discount: coupon.max_discount || 0,
         usage_limit: coupon.usage_limit || 0,
         is_active: coupon.is_active,
-        valid_from: coupon.valid_from ? coupon.valid_from.split('T')[0] : "",
-        valid_until: coupon.valid_until ? coupon.valid_until.split('T')[0] : "",
+        valid_from: coupon.valid_from ? coupon.valid_from.split("T")[0] : "",
+        valid_until: coupon.valid_until ? coupon.valid_until.split("T")[0] : "",
         applicable_plans: coupon.applicable_plans || [],
       });
     }
@@ -85,7 +89,7 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.code.trim()) {
       toast.error("Coupon code is required");
       return;
@@ -93,14 +97,21 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
 
     try {
       setSaving(true);
-      
+
       // Fixed: Convert null to undefined for TypeScript compatibility
       const payload: Partial<ICoupon> = {
         ...formData,
         code: formData.code.toUpperCase(),
-        valid_from: formData.valid_from ? new Date(formData.valid_from).toISOString() : undefined,
-        valid_until: formData.valid_until ? new Date(formData.valid_until).toISOString() : undefined,
-        applicable_plans: formData.applicable_plans.length > 0 ? formData.applicable_plans : undefined,
+        valid_from: formData.valid_from
+          ? new Date(formData.valid_from).toISOString()
+          : undefined,
+        valid_until: formData.valid_until
+          ? new Date(formData.valid_until).toISOString()
+          : undefined,
+        applicable_plans:
+          formData.applicable_plans.length > 0
+            ? formData.applicable_plans
+            : undefined,
       };
 
       const response = coupon
@@ -122,7 +133,7 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
 
   return (
     <Dialog open onOpenChange={onCancel}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[90vh] max-h-[90vh]  overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {coupon ? "Edit Coupon" : "Create New Coupon"}
@@ -136,7 +147,12 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
               <Input
                 id="code"
                 value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    code: e.target.value.toUpperCase(),
+                  })
+                }
                 placeholder="SAVE20"
                 required
               />
@@ -147,7 +163,9 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 placeholder="20% Off"
               />
             </div>
@@ -158,7 +176,9 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               placeholder="Get 20% off on all plans"
             />
           </div>
@@ -184,14 +204,20 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
 
             <div className="space-y-2">
               <Label htmlFor="discount-value">
-                Discount Value ({formData.discount_type === "percentage" ? "%" : "₹"})
+                Discount Value (
+                {formData.discount_type === "percentage" ? "%" : "₹"})
               </Label>
               <Input
                 id="discount-value"
                 type="number"
                 min="0"
                 value={formData.discount_value}
-                onChange={(e) => setFormData({ ...formData, discount_value: Number(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    discount_value: Number(e.target.value),
+                  })
+                }
                 required
               />
             </div>
@@ -205,7 +231,12 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
                 type="number"
                 min="0"
                 value={formData.min_amount}
-                onChange={(e) => setFormData({ ...formData, min_amount: Number(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    min_amount: Number(e.target.value),
+                  })
+                }
               />
             </div>
 
@@ -216,7 +247,12 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
                 type="number"
                 min="0"
                 value={formData.max_discount}
-                onChange={(e) => setFormData({ ...formData, max_discount: Number(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    max_discount: Number(e.target.value),
+                  })
+                }
               />
             </div>
           </div>
@@ -229,7 +265,12 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
                 type="number"
                 min="0"
                 value={formData.usage_limit}
-                onChange={(e) => setFormData({ ...formData, usage_limit: Number(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    usage_limit: Number(e.target.value),
+                  })
+                }
               />
             </div>
 
@@ -237,7 +278,9 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
               <Switch
                 id="is-active"
                 checked={formData.is_active}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, is_active: checked })
+                }
               />
               <Label htmlFor="is-active">Active</Label>
             </div>
@@ -250,7 +293,9 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
                 id="valid-from"
                 type="date"
                 value={formData.valid_from}
-                onChange={(e) => setFormData({ ...formData, valid_from: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, valid_from: e.target.value })
+                }
               />
             </div>
 
@@ -260,7 +305,9 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
                 id="valid-until"
                 type="date"
                 value={formData.valid_until}
-                onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, valid_until: e.target.value })
+                }
               />
             </div>
           </div>

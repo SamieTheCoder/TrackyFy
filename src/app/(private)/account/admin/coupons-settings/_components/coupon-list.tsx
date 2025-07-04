@@ -151,6 +151,8 @@ export default function CouponList({ coupons, onEdit, onUpdate, isEnabled }: Pro
                       </Button>
                     </div>
                     {c.name && <p className="font-semibold line-clamp-1">{c.name}</p>}
+                    
+                    
                   </div>
                   <Badge className={`${clr} capitalize flex items-center`}>
                     <Icon className="h-3 w-3 mr-1"/>{txt}

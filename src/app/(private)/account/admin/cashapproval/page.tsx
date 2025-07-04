@@ -32,6 +32,8 @@ import {
   Eye,
   MoreVertical,
   Tag,
+  BanknoteIcon as Banknote,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -250,39 +252,67 @@ function CashApprovalPage() {
     );
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-8">
-        <div className="relative">
-          {loading && (
-            <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/70 z-20 backdrop-blur-sm rounded-xl">
-              <Spinner parentHeight="100%" />
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-800/30 flex items-center justify-center animate-pulse">
+              <Banknote className="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
-          )}
-          {/* Back Button */}
-          <div className="mb-4">
-            <Button 
-              variant="outline" 
-              className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-            >
-              <Link href="/account" className="flex items-center">
-                <ArrowLeft size={16} className="mr-2" />
-                Back to Account
-              </Link>
-            </Button>
+            <div>
+              <div className="h-6 w-48 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+              <div className="h-4 w-32 bg-slate-100 dark:bg-slate-800 rounded mt-2 animate-pulse"></div>
+            </div>
           </div>
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-200 border-t-green-600"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-          {/* Header */}
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
+        <div className="relative">
+          {/* Enhanced Header Section */}
           <div className="mb-8">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center">
-                <IndianRupee className="h-5 w-5 sm:h-6 sm:w-6 text-slate-600 dark:text-slate-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <PageTitle title="Cash Payment Approvals" />
-                <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm sm:text-base">
-                  Review and approve cash payment requests from customers
-                </p>
+            {/* Navigation */}
+            <div className="mb-6">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="group border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+              >
+                <Link href="/account" className="flex items-center">
+                  <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform duration-200" />
+                  <span className="hidden sm:inline">Back to Dashboard</span>
+                  <span className="sm:hidden">Back</span>
+                </Link>
+              </Button>
+            </div>
+
+            {/* Title Section */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-gradient-to-br from-green-100 via-green-200 to-green-300 dark:from-green-900/30 dark:via-green-800/30 dark:to-green-700/30 border-2 border-green-200 dark:border-green-800 flex items-center justify-center shadow-lg">
+                    <Banknote className="h-7 w-7 sm:h-8 sm:w-8 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 h-5 w-5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                    <Sparkles className="h-3 w-3 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 dark:from-slate-100 dark:via-slate-200 dark:to-slate-300 bg-clip-text text-transparent">
+                    Cash Payment Approvals
+                  </h1>
+                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-1 font-medium">
+                    Review and approve cash payment requests from customers
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -362,37 +392,6 @@ function CashApprovalPage() {
 
           {/* Filters and Actions */}
           <div className="mb-6 space-y-4">
-            {/* Top Actions */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <Button
-                variant="outline"
-                className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center"
-              >
-                <Link href="/account" className="flex items-center">
-                  <ArrowLeft size={16} className="mr-2" />
-                  Back to Account
-                </Link>
-              </Button>
-
-              <div className="flex gap-2">
-                <Button
-                  onClick={fetchRequests}
-                  disabled={loading}
-                  variant="outline"
-                  size="sm"
-                >
-                  <RefreshCw
-                    className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
-                  />
-                  Refresh
-                </Button>
-                <Button onClick={exportData} variant="outline" size="sm">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
-              </div>
-            </div>
-
             {/* Search and Filters */}
             <div className="flex flex-col lg:flex-row gap-4">
               {/* Search */}
@@ -421,6 +420,25 @@ function CashApprovalPage() {
                   </option>
                 </select>
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={fetchRequests}
+                  disabled={loading}
+                  variant="outline"
+                  size="sm"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+                  />
+                  Refresh
+                </Button>
+                <Button onClick={exportData} variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
               </div>
             </div>
 
@@ -609,7 +627,7 @@ function CashApprovalPage() {
                             {request.coupon ? "Final Amount" : "Amount"}
                           </span>
                         </div>
-                        <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                        <span className="text-lg font-bold text-green-600 dark:text-green-400">
                           ₹{request.amount.toLocaleString()}
                         </span>
                       </div>
@@ -682,7 +700,7 @@ function CashApprovalPage() {
                     <span className="text-slate-500 dark:text-slate-400">
                       Amount:
                     </span>
-                    <p className="font-medium text-orange-600">
+                    <p className="font-medium text-green-600">
                       ₹{selectedRequest.amount.toLocaleString()}
                     </p>
                   </div>
@@ -769,7 +787,7 @@ function CashApprovalPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Confirmation Dialog */}
+        {/* FIXED Confirmation Dialog */}
         <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -786,45 +804,44 @@ function CashApprovalPage() {
                 {actionType === "approve" ? "Approve" : "Reject"} Payment
                 Request
               </DialogTitle>
-              <DialogDescription>
-                {selectedRequest && (
-                  <div className="space-y-2">
+            </DialogHeader>
+            {selectedRequest && (
+              <div className="space-y-4">
+                <p className="text-slate-600 dark:text-slate-400">
+                  Are you sure you want to {actionType} this payment request?
+                </p>
+                
+                <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-3">
+                  <div className="space-y-2 text-sm">
                     <div>
-                      Are you sure you want to {actionType} this payment
-                      request?
+                      <strong>Customer:</strong> {selectedRequest.user?.name}
                     </div>
-                    <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-3 mt-3">
-                      <div className="text-sm">
-                        <strong>Customer:</strong> {selectedRequest.user?.name}
-                      </div>
-                      <div className="text-sm">
-                        <strong>Amount:</strong> ₹
-                        {selectedRequest.amount.toLocaleString()}
-                      </div>
-                      <div className="text-sm">
-                        <strong>Plan:</strong> {selectedRequest.plan?.name}
-                      </div>
-                      {selectedRequest.coupon && (
-                        <div className="text-sm">
-                          <strong>Coupon:</strong> {selectedRequest.coupon.code}
-                        </div>
-                      )}
+                    <div>
+                      <strong>Amount:</strong> ₹{selectedRequest.amount.toLocaleString()}
                     </div>
-                    {actionType === "approve" && (
-                      <div className="text-sm text-green-600 dark:text-green-400 mt-2">
-                        This will activate the customer's subscription
-                        immediately.
-                      </div>
-                    )}
-                    {actionType === "reject" && (
-                      <div className="text-sm text-red-600 dark:text-red-400 mt-2">
-                        This will permanently delete the payment request.
+                    <div>
+                      <strong>Plan:</strong> {selectedRequest.plan?.name}
+                    </div>
+                    {selectedRequest.coupon && (
+                      <div>
+                        <strong>Coupon:</strong> {selectedRequest.coupon.code}
                       </div>
                     )}
                   </div>
+                </div>
+                
+                {actionType === "approve" && (
+                  <p className="text-sm text-green-600 dark:text-green-400">
+                    This will activate the customer's subscription immediately.
+                  </p>
                 )}
-              </DialogDescription>
-            </DialogHeader>
+                {actionType === "reject" && (
+                  <p className="text-sm text-red-600 dark:text-red-400">
+                    This will permanently delete the payment request.
+                  </p>
+                )}
+              </div>
+            )}
             <DialogFooter className="gap-2">
               <Button
                 variant="outline"
