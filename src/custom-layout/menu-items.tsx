@@ -101,7 +101,7 @@ function MenuItems({ user, openMenuItems, setOpenMenuItems }: IMenuItemsProps) {
         <SheetTitle></SheetTitle>
 
         <SheetHeader className="flex flex-col gap-8">
-          <nav className="flex flex-col gap-4 mt-15">
+          <nav className="flex flex-col gap-2 mt-10">
             {menuItemsToRender.map((item, index) => (
               <button
                 key={index}

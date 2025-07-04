@@ -47,7 +47,7 @@ const BillingCycleButton = memo(
 
 BillingCycleButton.displayName = "BillingCycleButton";
 
-// Plan card component - Enhanced with R2 URL debugging
+// Plan card component - Cleaned up logging
 const PlanCard = memo(
   ({
     plan,
@@ -88,28 +88,14 @@ const PlanCard = memo(
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
             loading="lazy"
             decoding="async"
-            onLoad={() => {
-  console.log("✅ Plan image loaded successfully:", plan.images[0]);
-  if (plan.images[0].includes('pub-874f40d29e274d17801990d161f5689e.r2.dev')) {
-    console.log("☁️ Using correct Cloudflare R2 public URL - SSL working");
-  } else if (plan.images[0].includes('.r2.dev')) {
-    console.log("⚠️ Different R2 account ID detected");
-  }
-}}
-onError={(e) => {
-  console.error("❌ Plan image failed to load:", plan.images[0]);
-  console.error("🔒 This indicates R2 bucket is not publicly accessible or SSL issue");
-  
-  if (plan.images[0].includes('.r2.dev')) {
-    console.error("💡 Cloudflare R2 URL detected - enable Public Development URL in R2 dashboard");
-    console.error("🔧 Also check SSL configuration and account ID match");
-  } else {
-    console.error("⚠️ Not a Cloudflare R2 URL - check upload process");
-  }
-  
-  // Enhanced fallback with TrackyFy branding
-  e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23374151'/%3E%3Ctext x='50%25' y='35%25' font-family='Arial' font-size='20' fill='%23F97316' text-anchor='middle' dy='0.3em'%3E🏋️ TrackyFy%3C/text%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='14' fill='%239CA3AF' text-anchor='middle' dy='0.3em'%3EPlan Image%3C/text%3E%3Ctext x='50%25' y='65%25' font-family='Arial' font-size='12' fill='%236B7280' text-anchor='middle' dy='0.3em'%3ENot Available%3C/text%3E%3C/svg%3E";
-}}
+            onError={(e) => {
+              // Only log errors, not successful loads
+              console.error("❌ Plan image failed to load:", plan.images[0]);
+
+              // Enhanced fallback with TrackyFy branding
+              e.currentTarget.src =
+                "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23374151'/%3E%3Ctext x='50%25' y='35%25' font-family='Arial' font-size='20' fill='%23F97316' text-anchor='middle' dy='0.3em'%3E🏋️ TrackyFy%3C/text%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='14' fill='%239CA3AF' text-anchor='middle' dy='0.3em'%3EPlan Image%3C/text%3E%3Ctext x='50%25' y='65%25' font-family='Arial' font-size='12' fill='%236B7280' text-anchor='middle' dy='0.3em'%3ENot Available%3C/text%3E%3C/svg%3E";
+            }}
           />
         ) : (
           <div
@@ -261,7 +247,6 @@ function PlansList() {
   const fetchPlans = useCallback(async () => {
     try {
       setLoading(true);
-      console.log("🔄 Fetching plans from Supabase database...");
 
       const response = await getAllPlans();
       if (response.success && response.data) {
@@ -269,34 +254,8 @@ function PlansList() {
           (a: IPlan, b: IPlan) => a.monthly_price - b.monthly_price
         );
 
-        console.log("📋 Plans loaded successfully:");
-        sortedPlans.forEach((plan, index) => {
-          console.log(`  Plan ${index + 1}: ${plan.name}`);
-          if (plan.images && plan.images.length > 0) {
-            plan.images.forEach((imageUrl: string, imgIndex: number) => {
-              console.log(`    🖼️ Image ${imgIndex + 1}: ${imageUrl}`);
-              if (
-                imageUrl.includes("pub-ef28cea76db19c5ab98885b745bb0e57.r2.dev")
-              ) {
-                console.log(`    ✅ Correct Cloudflare R2 public URL format`);
-              } else if (imageUrl.includes(".r2.dev")) {
-                console.log(`    ⚠️ Different R2 account ID detected`);
-              } else {
-                console.log(
-                  `    ❌ Not a Cloudflare R2 URL - check upload process`
-                );
-              }
-            });
-          } else {
-            console.log(`    ❌ No images found for this plan`);
-          }
-        });
-
         setPlans(sortedPlans);
-        toast.success(`✅ Loaded ${sortedPlans.length} plans successfully`, {
-          position: "top-center",
-          duration: 2000,
-        });
+        // Removed success toast - only show errors
       } else {
         setPlans([]);
         toast.error(response.message || "Failed to load plans", {
